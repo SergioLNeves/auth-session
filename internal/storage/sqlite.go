@@ -25,16 +25,6 @@ type SQLiteStorage struct {
 }
 
 func NewSQLite(cfg *Config) (*SQLiteStorage, error) {
-	if cfg == nil {
-		cfg = &Config{
-			DBPath:      "./data/auth-session.db",
-			Environment: "development",
-			MaxConn:     10,
-			MaxIdle:     5,
-			MaxLifeTime: time.Hour,
-		}
-	}
-
 	// Criar diretório do banco de dados se não existir
 	dbDir := filepath.Dir(cfg.DBPath)
 	if err := os.MkdirAll(dbDir, 0o755); err != nil {
@@ -121,13 +111,13 @@ func (s *SQLiteStorage) AutoMigrate(models ...any) error {
 	return nil
 }
 
-func InitDatabase() (*SQLiteStorage, error) {
+func InitDatabase(dbPath, environment string, maxConn, maxIdle int, maxLifeTime time.Duration) (*SQLiteStorage, error) {
 	cfg := &Config{
-		DBPath:      "./data/auth-session.db",
-		Environment: "development",
-		MaxConn:     10,
-		MaxIdle:     5,
-		MaxLifeTime: time.Hour,
+		DBPath:      dbPath,
+		Environment: environment,
+		MaxConn:     maxConn,
+		MaxIdle:     maxIdle,
+		MaxLifeTime: maxLifeTime,
 	}
 
 	db, err := NewSQLite(cfg)

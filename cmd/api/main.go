@@ -11,9 +11,8 @@ import (
 )
 
 func main() {
-	db, err := storage.InitDatabase()
-	if err != nil {
-		slog.Fatalf("Failed to initialize database: %v", err)
+	if err := config.LoadEnv(); err != nil {
+		slog.Fatalf("Failed to load environment: %v", err)
 	}
 	defer db.Close()
 
@@ -22,6 +21,22 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 	e.Validator = validator.NewValidator()
+
+	db, err := storage.InitDatabase(
+		config.Env.SQL.DBPath,
+		config.Env.Env,
+		config.Env.SQL.MaxConn,
+		config.Env.SQL.MaxIdle,
+		config.Env.SQL.MaxLifeTime,
+	)
+	if err != nil {
+		slog.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer func() {
+		if db != nil {
+			db.Close()
+		}
+	}()
 
 	configureHealthcheckRoute(e, db)
 

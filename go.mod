@@ -13,7 +13,10 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
+require github.com/joho/godotenv v1.5.1 // indirect
+
 require (
+	github.com/Netflix/go-env v0.1.2
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gookit/color v1.6.0 // indirect
 	github.com/gookit/goutil v0.7.1 // indirect
