@@ -1,20 +1,29 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/SergioLNeves/auth-session/internal/config"
+	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/SergioLNeves/auth-session/internal/handler"
 	validator "github.com/SergioLNeves/auth-session/internal/pkg"
 	"github.com/SergioLNeves/auth-session/internal/service"
-	"github.com/SergioLNeves/auth-session/internal/storage"
-	"github.com/gookit/slog"
+	"github.com/SergioLNeves/auth-session/internal/storage/sqlite"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/samber/do"
+)
+
+var (
+	injector *do.Injector
 )
 
 func main() {
 	if err := config.LoadEnv(); err != nil {
-		slog.Fatalf("Failed to load environment: %v", err)
+		log.Fatalf("failed to load environment: %v", err)
 	}
-	defer db.Close()
 
 	e := echo.New()
 	e.Use(middleware.RequestLogger())
@@ -22,37 +31,30 @@ func main() {
 	e.Use(middleware.CORS())
 	e.Validator = validator.NewValidator()
 
-	db, err := storage.InitDatabase(
-		config.Env.SQL.DBPath,
-		config.Env.Env,
-		config.Env.SQL.MaxConn,
-		config.Env.SQL.MaxIdle,
-		config.Env.SQL.MaxLifeTime,
-	)
-	if err != nil {
-		slog.Fatalf("Failed to initialize database: %v", err)
-	}
+	initDependencies()
 	defer func() {
-		if db != nil {
-			db.Close()
+		if err := injector.Shutdown(); err != nil {
+			e.Logger.Errorf("shutdown injector: %w", err)
 		}
 	}()
 
-	configureHealthcheckRoute(e, db)
-
-	StartServer(e)
+	api := config.NewAPI(e, config.Env.Port, 10*time.Second)
+	api.Start()
 }
 
-func StartServer(e *echo.Echo) {
-	slog.Println("Starting server on :8080")
-	if err := e.Start(":8080"); err != nil {
-		slog.Fatalf("Server failed: %v", err)
+func configureHealthcheckRoute(e *echo.Echo) {
+	healthCheckHandler, err := do.Invoke[domain.HealthCheckHandler](injector)
+	if err != nil {
+		e.Logger.Fatal(fmt.Errorf("Invoke healthcheck handle: %w", err))
 	}
-}
-
-func configureHealthcheckRoute(e *echo.Echo, db *storage.SQLiteStorage) {
-	healthService, _ := service.NewHealthCheckService(db)
-	healthCheckHandler, _ := handler.NewHealthCheckHandler(healthService)
 
 	e.GET("/health", healthCheckHandler.Check)
+}
+
+func initDependencies() {
+	injector = do.New()
+
+	do.Provide(injector, sqlite.NewSQLite)
+	do.Provide(injector, service.NewHealthCheckService)
+	do.Provide(injector, handler.NewHealthCheckHandler)
 }

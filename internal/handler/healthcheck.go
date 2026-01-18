@@ -6,13 +6,15 @@ import (
 
 	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/labstack/echo/v4"
+	"github.com/samber/do"
 )
 
 type HealthCheckHandlerImpl struct {
 	healthCheckService domain.HealthCheckerService
 }
 
-func NewHealthCheckHandler(healthCheckService domain.HealthCheckerService) (domain.HealthCheckHandler, error) {
+func NewHealthCheckHandler(i *do.Injector) (domain.HealthCheckHandler, error) {
+	healthCheckService := do.MustInvoke[domain.HealthCheckerService](i)
 	if healthCheckService == nil {
 		return nil, fmt.Errorf("failed to initialize health check service dependency")
 	}
@@ -28,5 +30,5 @@ func (h HealthCheckHandlerImpl) Check(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
 
-	return ctx.JSON(http.StatusOK, check.Status)
+	return ctx.JSON(http.StatusOK, check)
 }

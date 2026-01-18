@@ -1,12 +1,16 @@
-package storage
+package sqlite
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/SergioLNeves/auth-session/internal/config"
+	"github.com/SergioLNeves/auth-session/internal/storage"
+	"github.com/samber/do"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -24,20 +28,27 @@ type SQLiteStorage struct {
 	db *gorm.DB
 }
 
-func NewSQLite(cfg *Config) (*SQLiteStorage, error) {
-	// Criar diretório do banco de dados se não existir
+func NewSQLite(i *do.Injector) (storage.Storage, error) {
+	return newSQLite(&Config{
+		DBPath:      config.Env.SQL.DBPath,
+		Environment: config.Env.Env,
+		MaxConn:     config.Env.SQL.MaxConn,
+		MaxIdle:     config.Env.SQL.MaxIdle,
+		MaxLifeTime: config.Env.SQL.MaxLifeTime,
+	})
+}
+
+func newSQLite(cfg *Config) (storage.Storage, error) {
 	dbDir := filepath.Dir(cfg.DBPath)
 	if err := os.MkdirAll(dbDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 
-	// Configurar nível de log
 	logLevel := logger.Info
 	if cfg.Environment == "production" {
 		logLevel = logger.Warn
 	}
 
-	// Configuração do GORM
 	gormConfig := &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 		NowFunc: func() time.Time {
@@ -46,44 +57,42 @@ func NewSQLite(cfg *Config) (*SQLiteStorage, error) {
 		PrepareStmt: true,
 	}
 
-	// Conectar ao banco de dados
 	db, err := gorm.Open(sqlite.Open(cfg.DBPath), gormConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Obter SQL DB para configurações avançadas
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get underlying SQL DB: %w", err)
 	}
 
-	// Configurar pool de conexões
 	sqlDB.SetMaxOpenConns(cfg.MaxConn)
 	sqlDB.SetMaxIdleConns(cfg.MaxIdle)
 	sqlDB.SetConnMaxLifetime(cfg.MaxLifeTime)
 
-	// Testar conexão
 	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	log.Printf("Successfully connected to SQLite database at %s", cfg.DBPath)
 
-	return &SQLiteStorage{db: db}, nil
+	sqliteDB := &SQLiteStorage{db: db}
+
+	if err := sqliteDB.AutoMigrate(GetModelsToMigrate()...); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return sqliteDB, nil
 }
 
-func (s *SQLiteStorage) GetDB() *gorm.DB {
-	return s.db
-}
-
-func (s *SQLiteStorage) Ping() error {
+func (s *SQLiteStorage) Ping(ctx context.Context) error {
 	sqlDB, err := s.db.DB()
 	if err != nil {
 		return fmt.Errorf("failed to get underlying SQL DB: %w", err)
 	}
 
-	if err := sqlDB.Ping(); err != nil {
+	if err := sqlDB.PingContext(ctx); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
@@ -111,23 +120,28 @@ func (s *SQLiteStorage) AutoMigrate(models ...any) error {
 	return nil
 }
 
-func InitDatabase(dbPath, environment string, maxConn, maxIdle int, maxLifeTime time.Duration) (*SQLiteStorage, error) {
-	cfg := &Config{
-		DBPath:      dbPath,
-		Environment: environment,
-		MaxConn:     maxConn,
-		MaxIdle:     maxIdle,
-		MaxLifeTime: maxLifeTime,
-	}
+func (s *SQLiteStorage) Insert(ctx context.Context, data any) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
 
-	db, err := NewSQLite(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	result := s.db.WithContext(ctx).Create(data)
+	if result.Error != nil {
+		return fmt.Errorf("failed to insert data: %w", result.Error)
 	}
+	return nil
+}
 
-	if err := db.AutoMigrate(GetModelsToMigrate()...); err != nil {
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
+func (s *SQLiteStorage) GetDB() any {
+	return s.db
+}
+
+func (s *SQLiteStorage) FindByEmail(ctx context.Context, email string, dest any) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	result := s.db.WithContext(ctx).Where("email = ?", email).First(dest)
+	if result.Error != nil {
+		return result.Error
 	}
-
-	return db, nil
+	return nil
 }

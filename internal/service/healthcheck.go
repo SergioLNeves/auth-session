@@ -1,8 +1,11 @@
 package service
 
 import (
+	"context"
+
 	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/SergioLNeves/auth-session/internal/storage"
+	"github.com/samber/do"
 )
 
 const (
@@ -12,10 +15,11 @@ const (
 )
 
 type HealthCheckServiceImpl struct {
-	db *storage.SQLiteStorage
+	db storage.Storage
 }
 
-func NewHealthCheckService(db *storage.SQLiteStorage) (domain.HealthCheckerService, error) {
+func NewHealthCheckService(i *do.Injector) (domain.HealthCheckerService, error) {
+	db := do.MustInvoke[storage.Storage](i)
 	return &HealthCheckServiceImpl{db: db}, nil
 }
 
@@ -24,7 +28,7 @@ func (h *HealthCheckServiceImpl) Check() (domain.HealthCheck, []error) {
 
 	dbStatus := DatabaseHealthy
 	if h.db != nil {
-		if err := h.db.Ping(); err != nil {
+		if err := h.db.Ping(context.Background()); err != nil {
 			dbStatus = DatabaseError
 			errs = append(errs, err)
 		}
