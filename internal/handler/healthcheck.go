@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SergioLNeves/auth-session/domain"
+	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/labstack/echo/v4"
 )
 
