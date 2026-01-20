@@ -3,7 +3,6 @@ package sqlite
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -44,13 +43,8 @@ func newSQLite(cfg *Config) (storage.Storage, error) {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 
-	logLevel := logger.Info
-	if cfg.Environment == "production" {
-		logLevel = logger.Warn
-	}
-
 	gormConfig := &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
+		Logger: logger.Default.LogMode(logger.Silent),
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
@@ -74,8 +68,6 @@ func newSQLite(cfg *Config) (storage.Storage, error) {
 	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
-
-	log.Printf("Successfully connected to SQLite database at %s", cfg.DBPath)
 
 	sqliteDB := &SQLiteStorage{db: db}
 
@@ -109,7 +101,6 @@ func (s *SQLiteStorage) Close() error {
 		return fmt.Errorf("failed to close database: %w", err)
 	}
 
-	log.Println("Database connection closed")
 	return nil
 }
 

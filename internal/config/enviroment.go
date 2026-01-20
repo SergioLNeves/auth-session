@@ -11,7 +11,7 @@ import (
 var Env domain.Config
 
 func LoadEnv() error {
-	_ = godotenv.Load()
+	_ = godotenv.Load() //nolint:errcheck // .env file is optional
 
 	if _, err := env.UnmarshalFromEnviron(&Env); err != nil {
 		return fmt.Errorf("init env: %w", err)

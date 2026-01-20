@@ -15,8 +15,8 @@ type KeysConfig struct {
 }
 
 type SQLConfig struct {
-	DBPath         string        `env:"DB_PATH,default=./data/auth-session.db"`
-	MaxConn        int           `env:"DB_MAX_CONN,default=10"`
-	MaxIdle        int           `env:"DB_MAX_IDLE,default=5"`
-	MaxLifeTime    time.Duration `env:"DB_MAX_LIFETIME,default=1h"`
+	DBPath      string        `env:"DB_PATH,default=./data/auth-session.db"`
+	MaxConn     int           `env:"DB_MAX_CONN,default=10"`
+	MaxIdle     int           `env:"DB_MAX_IDLE,default=5"`
+	MaxLifeTime time.Duration `env:"DB_MAX_LIFETIME,default=1h"`
 }

@@ -35,11 +35,9 @@ type AuthHandler interface {
 }
 
 type AuthService interface {
-	Authenticate(ctx context.Context, email, password string) (*User, error)
 	CreateAccount(ctx context.Context, req CreateAccountRequest) (*User, error)
 }
 
 type AuthRepository interface {
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	CreateUser(ctx context.Context, user *User) error
 }

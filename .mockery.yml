@@ -1,0 +1,31 @@
+all: false
+dir: mock
+filename: '{{.InterfaceName}}_mock.go'
+force-file-write: true
+formatter: goimports
+generate: true
+include-auto-generated: false
+log-level: info
+structname: 'Mock{{.InterfaceName}}'
+pkgname: mock
+recursive: true
+require-template-schema-exists: true
+template: testify
+template-schema: '{{.Template}}.schema.json'
+packages:
+  github.com/SergioLNeves/auth-session/internal/domain:
+    config:
+      all: true
+      recursive: true
+  github.com/SergioLNeves/auth-session/internal/repository:
+    config:
+      all: true
+      recursive: true
+  github.com/SergioLNeves/auth-session/internal/service:
+    config:
+      all: true
+      recursive: true
+  github.com/SergioLNeves/auth-session/internal/storage:
+    config:
+      all: true
+      recursive: true
