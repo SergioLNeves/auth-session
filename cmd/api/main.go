@@ -1,30 +1,34 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"time"
 
 	"github.com/SergioLNeves/auth-session/internal/config"
 	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/SergioLNeves/auth-session/internal/handler"
-	validator "github.com/SergioLNeves/auth-session/internal/pkg"
+	"github.com/SergioLNeves/auth-session/internal/pkg/logging"
+	validator "github.com/SergioLNeves/auth-session/internal/pkg/validator"
 	"github.com/SergioLNeves/auth-session/internal/repository"
 	"github.com/SergioLNeves/auth-session/internal/service"
 	"github.com/SergioLNeves/auth-session/internal/storage/sqlite"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/samber/do"
+	"go.uber.org/zap"
 )
 
 var (
 	injector *do.Injector
+	logger   *zap.Logger
 )
 
 func main() {
 	if err := config.LoadEnv(); err != nil {
-		log.Fatalf("failed to load environment: %v", err)
+		panic("failed to load environment: " + err.Error())
 	}
+
+	logger = logging.NewLogger(&config.Env)
+	defer logger.Sync()
 
 	e := echo.New()
 	e.Use(middleware.RequestLogger())
@@ -32,7 +36,7 @@ func main() {
 	e.Use(middleware.CORS())
 	e.Validator = validator.NewValidator()
 
-	initDependencies()
+	initDependencies(logger)
 	defer func() {
 		if err := injector.Shutdown(); err != nil {
 			e.Logger.Errorf("shutdown injector: %w", err)
@@ -49,7 +53,7 @@ func main() {
 func configureHealthcheckRoute(e *echo.Echo) {
 	healthCheckHandler, err := do.Invoke[domain.HealthCheckHandler](injector)
 	if err != nil {
-		e.Logger.Fatal(fmt.Errorf("invoke healthcheck handler: %w", err))
+		logger.Fatal("invoke healthcheck handler", zap.Error(err))
 	}
 
 	e.GET("/health", healthCheckHandler.Check)
@@ -58,7 +62,7 @@ func configureHealthcheckRoute(e *echo.Echo) {
 func configureAuthRoute(e *echo.Echo) {
 	authHandler, err := do.Invoke[domain.AuthHandler](injector)
 	if err != nil {
-		e.Logger.Fatal(fmt.Errorf("invoke auth handler: %w", err))
+		logger.Fatal("invoke auth handler", zap.Error(err))
 	}
 
 	v1 := e.Group("/v1")
@@ -67,8 +71,10 @@ func configureAuthRoute(e *echo.Echo) {
 	authUser.POST("/login", authHandler.Login)
 }
 
-func initDependencies() {
+func initDependencies(logger *zap.Logger) {
 	injector = do.New()
+
+	do.ProvideValue(injector, logger)
 
 	do.Provide(injector, sqlite.NewSQLite)
 

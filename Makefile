@@ -17,11 +17,12 @@ setup:
 	go get ./...
 	@go install github.com/vektra/mockery/v3@v3.6.3
 	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.3.0
+	@go install github.com/air-verse/air@latest
 	make gen-key
 
 .PHONY: run
 run:
-	@go run ./cmd/api/main.go
+	@air
 
 .PHONY: gen-key
 gen-key:

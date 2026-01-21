@@ -2,7 +2,6 @@ package validator
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/go-playground/locales/en"
@@ -25,7 +24,7 @@ func init() {
 	transEN, _ := uni.GetTranslator("en")
 
 	if err := en_translations.RegisterDefaultTranslations(validate, transEN); err != nil {
-		log.Fatal(err)
+		panic("failed to register validator translations: " + err.Error())
 	}
 }
 

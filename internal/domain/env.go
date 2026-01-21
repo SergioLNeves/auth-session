@@ -3,10 +3,11 @@ package domain
 import "time"
 
 type Config struct {
-	Env  string `env:"ENV,default=development"`
-	Port int    `env:"PORT,default=8080"`
-	Keys KeysConfig
-	SQL  SQLConfig
+	Env      string `env:"ENV,default=development"`
+	Port     int    `env:"PORT,default=8080"`
+	LogLevel string `env:"LOG_LEVEL,default:debug"`
+	Keys     KeysConfig
+	SQL      SQLConfig
 }
 
 type KeysConfig struct {
