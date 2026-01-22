@@ -66,9 +66,11 @@ func configureAuthRoute(e *echo.Echo) {
 	}
 
 	v1 := e.Group("/v1")
-	authUser := v1.Group("/auth/user")
-	authUser.POST("/create-account", authHandler.CreateAccount)
-	authUser.POST("/login", authHandler.Login)
+	userGroup := v1.Group("/user")
+	userGroup.POST("/create-account", authHandler.CreateAccount)
+
+	authGroup := v1.Group("/auth")
+	authGroup.POST("/login", authHandler.Login)
 }
 
 func initDependencies(logger *zap.Logger) {

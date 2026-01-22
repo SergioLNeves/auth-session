@@ -15,6 +15,7 @@ require (
 require github.com/joho/godotenv v1.5.1
 
 require (
+	github.com/goccy/go-json v0.10.5
 	github.com/samber/do v1.6.0
 	github.com/stretchr/testify v1.11.1
 )

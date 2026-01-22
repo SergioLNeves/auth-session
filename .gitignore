@@ -3,3 +3,4 @@
 
 .gemini/
 gha-creds-*.json
+/tmp
