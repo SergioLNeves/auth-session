@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Go-based authentication service implementing JWT authentication with RS256 (asymmetric signing). The project is currently transitioning from session-based authentication to stateless JWT authentication. Built with Echo framework and SQLite for data persistence.
+This is a Go-based authentication service implementing JWT authentication with RS256 (asymmetric signing) and database-backed session management. Built with Echo framework, SQLite (GORM) for data persistence, and `samber/do` for dependency injection. On logout, sessions are deactivated server-side (not just cookie clearing).
 
 ## Development Commands
 
@@ -42,12 +42,16 @@ cmd/api/main.go              → Entry point; DI container setup; route configur
 internal/
   ├─ handler/                → HTTP handlers (presentation layer)
   ├─ service/                → Business logic orchestration
-  ├─ repository/             → Data access interfaces
-  ├─ storage/sqlite/         → SQLite implementation of repositories
+  ├─ repository/             → Data access (auth and session repositories)
+  ├─ storage/sqlite/         → SQLite implementation (GORM)
   ├─ domain/                 → Core entities, DTOs, and interface definitions
   ├─ config/                 → Configuration and environment management
   ├─ pkg/                    → Reusable utilities (logging, validation, error handling)
-  └─ security/               → Security utilities (bcrypt password hashing)
+  └─ security/               → JWT (RS256 signing/parsing) and bcrypt password hashing
+assets/
+  ├─ html/                   → Pages (create-account, login, password, success)
+  ├─ css/                    → Stylesheets
+  └─ js/                     → Scripts (auth utilities, form handlers)
 ```
 
 ### Request Flow
@@ -60,6 +64,11 @@ internal/
 ### Dependency Injection
 
 The project uses `github.com/samber/do` for dependency injection. All dependencies are registered in `cmd/api/main.go:initDependencies()`.
+
+**Registration order:**
+```
+SQLite → AuthRepository → SessionRepository → JWTProvider → Services → Handlers
+```
 
 **Pattern for new components:**
 ```go
@@ -115,7 +124,6 @@ Request validation uses `go-playground/validator/v10`. Add validation tags to do
 
 ```go
 type CreateAccountRequest struct {
-    Name     string `form:"name" validate:"required"`
     Email    string `form:"email" validate:"required,email"`
     Password string `form:"password" validate:"required,min=8"`
 }
@@ -130,51 +138,88 @@ if err := validatorpkg.NewValidator().Validate(request); err != nil {
 
 ### Database Models
 
-GORM is used for SQLite interaction. Domain entities use GORM tags:
+GORM is used for SQLite interaction. Domain entities use GORM tags. Storage models live in `internal/storage/sqlite/models.go`:
 
 ```go
-type User struct {
-    ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
-    Email     string    `gorm:"type:varchar(100);uniqueIndex;not null"`
-    Active    bool      `gorm:"not null;default:true"`
+type UserTable struct {
+    ID        uuid.UUID `gorm:"type:uuid;primary_key"`
+    Email     string    `gorm:"uniqueIndex;not null"`
+    Password  string    `gorm:"not null"`
+    Active    bool      `gorm:"default:true"`
     CreatedAt time.Time
     UpdatedAt time.Time
+}
+```
+
+Repository implementations use table name constants (e.g., `TableUser = "user_tables"`, `TableSession = "session_tables"`) when calling storage methods.
+
+### Storage Interface
+
+The storage layer exposes generic methods with table name parameters:
+
+```go
+type Writer interface {
+    Insert(ctx context.Context, table string, data any) error
+    Update(ctx context.Context, table string, data any) error
+}
+type Querier interface {
+    FindByEmail(ctx context.Context, table, email string, dest any) error
+    FindByID(ctx context.Context, table string, id any, dest any) error
 }
 ```
 
 ## Authentication Implementation
 
 ### Current State
-- Account creation endpoint: `POST /v1/user/create-account`
-- Login endpoint: `POST /v1/auth/login` (partially implemented)
-- Password hashing: bcrypt (`internal/security/bcrypt.go`)
+- **Account creation**: `POST /v1/user/create-account` — full flow with session creation and JWT generation
+- **Login**: `POST /v1/auth/login` — handler stub (needs implementation)
+- **Logout**: `POST /v1/auth/logout` — reads access_token cookie, deactivates session in DB, clears cookies
+- **Password hashing**: bcrypt cost 12 (`internal/security/bcrypt.go`)
 
-### JWT Authentication (Planned/In Progress)
-The README.md contains detailed implementation guidance for JWT with RS256:
+### JWT (RS256)
 
-**JWT Flow:**
-1. Generate RSA key pair (private-key.pem, public-key.pem)
-2. Login handler signs JWT with private key
-3. Middleware validates JWT signature with public key
-4. Claims include user ID and standard fields (exp, iat)
+Token generation and parsing is handled by `internal/security/jwt.go` (`JWTProvider`):
+- Loads both private key (signing) and public key (verification) from PEM files at startup
+- Access token claims: `sub` (userID), `email`, `session_id`, `iat`, `exp`
+- Refresh token claims: `sub` (userID), `session_id`, `iat`, `exp`
+- `ParseAccessToken` uses `jwt.WithoutClaimsValidation()` to allow parsing expired tokens (needed for logout)
+- Expiry durations are configured via environment variables in **minutes**
 
-**JWT Claims Structure:**
-```go
-type JwtCustomClaims struct {
-    UserID string `json:"user_id"`
-    jwt.RegisteredClaims
-}
-```
+### Sessions
 
-When implementing JWT features, refer to the Portuguese documentation in README.md for the complete implementation pattern.
+Sessions are persisted in `session_tables` (SQLite). Each login/account creation produces a new session row with a UUID. The session ID is embedded as `session_id` in JWT claims. On logout, the session is marked `active=false`.
+
+Key interfaces:
+- `domain.SessionRepository`: `CreateSession`, `FindSessionByID`, `DeactivateSession`
+- Implemented in `internal/repository/session.go`
+
+### Cookies
+
+Auth cookies are set via `setAuthCookies()` in the handler:
+- `access_token`: **not** HttpOnly (readable by JS for claim extraction), SameSite=Strict, Secure in production
+- `refresh_token`: HttpOnly, SameSite=Strict, Secure in production
+- MaxAge is derived from env variables (minutes × 60 = seconds)
+- Cleared via `clearAuthCookies()` on logout
+
+### Frontend Auth
+
+`assets/js/auth.js` provides shared utilities:
+- `getUser()`: decodes JWT from cookie, returns `{id, email}` or null
+- `requireAuth()`: redirects to `/login` if not authenticated
+- `requireGuest()`: redirects to `/` if already authenticated
+- `logout()`: calls `POST /v1/auth/logout` and redirects to `/login`
 
 ## Configuration
 
 Environment variables are loaded from `.env` and parsed into `internal/domain/env.go`. Configuration is accessed via the global `config.Env` variable.
 
-**Important environment variables:**
-- `PORT`: Server port (default configured in env struct)
-- Database path and other SQLite settings in storage layer
+**Key environment variables:**
+- `ENV`: `development` or `production` (affects cookie Secure flag)
+- `PORT`: Server port (default 8080)
+- `PRIVATE_KEY_PATH` / `PUBLIC_KEY_PATH`: RSA key file paths
+- `ACCESS_TOKEN_EXPIRY`: Access token lifetime in minutes (default 60)
+- `REFRESH_TOKEN_EXPIRY`: Refresh token lifetime in minutes (default 10080)
+- `DB_PATH`: SQLite database file path
 
 ## Testing
 
@@ -219,14 +264,16 @@ Linting configuration in `.golangci.yml`:
 
 ### Adding Database Operations
 
-1. Define repository method in `internal/domain/` interface (e.g., `AuthRepository`)
-2. Implement in `internal/repository/` using the storage interface
+1. Define repository method in `internal/domain/` interface (e.g., `AuthRepository`, `SessionRepository`)
+2. Implement in `internal/repository/` using the storage interface with table name constants
 3. Add storage method to `internal/storage/storage.go` if needed
-4. Implement concrete SQLite version in `internal/storage/sqlite/`
+4. Implement concrete SQLite version in `internal/storage/sqlite/sqlite.go`
+5. Add GORM model to `internal/storage/sqlite/models.go` and register in `GetModelsToMigrate()`
 
 ## Notes
 
 - Air configuration (`.air.toml`) watches `.go`, `.html`, and template files
 - The project uses Go 1.25.4
-- SQLite database location is configured via the storage layer
-- Assets (HTML, CSS, JS) are in `assets/` directory for login/password pages
+- SQLite database location is configured via the `DB_PATH` env variable
+- Assets (HTML, CSS, JS) are in `assets/` directory, served as static files via Echo
+- Static assets are served at `/css`, `/js`; HTML pages at `/`, `/create-account`, `/login`, `/password`
