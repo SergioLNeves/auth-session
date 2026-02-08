@@ -85,7 +85,60 @@ func (e AuthHandlerImpl) CreateAccount(c echo.Context) error {
 }
 
 func (e AuthHandlerImpl) Login(c echo.Context) error {
-	return c.NoContent(http.StatusOK)
+	logger := logging.With(zap.String("handler", "AuthHandler.Login"))
+
+	var request domain.LoginRequest
+	if err := c.Bind(&request); err != nil {
+		logger.Error("failed to bind request", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("auth", "invalid-request").
+			WithTitle("Invalid Request").
+			WithStatus(http.StatusBadRequest).
+			WithDetail("Failed to parse request body").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusBadRequest, problemDetails)
+	}
+
+	if err := validatorpkg.NewValidator().Validate(request); err != nil {
+		logger.Error("validation failed", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("auth", "validation-error").
+			WithTitle("Validation Failed").
+			WithStatus(http.StatusBadRequest).
+			WithDetail("One or more fields failed validation").
+			WithInstance(c.Request().URL.Path).
+			AddFieldErrors(
+				errorpkg.NewProblemDetailsFromStructValidation(err.(validator.ValidationErrors)),
+			)
+		return c.JSON(http.StatusBadRequest, problemDetails)
+	}
+
+	response, err := e.AuthService.Login(c.Request().Context(), request)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			logger.Info("invalid credentials", zap.String("email", request.Email))
+			problemDetails := errorpkg.NewProblemDetails().
+				WithType("auth", "invalid-credentials").
+				WithTitle("Invalid Credentials").
+				WithStatus(http.StatusUnauthorized).
+				WithDetail("Invalid email or password").
+				WithInstance(c.Request().URL.Path)
+			return c.JSON(http.StatusUnauthorized, problemDetails)
+		}
+
+		logger.Error("failed to login", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("auth", "internal-error").
+			WithTitle("Internal Server Error").
+			WithStatus(http.StatusInternalServerError).
+			WithDetail("An unexpected error occurred during login").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusInternalServerError, problemDetails)
+	}
+
+	setAuthCookies(c, response)
+
+	return c.JSON(http.StatusOK, response)
 }
 
 func (e AuthHandlerImpl) Logout(c echo.Context) error {

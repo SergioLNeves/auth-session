@@ -46,8 +46,8 @@ func SessionAuth(
 				return internalErrorResponse(c)
 			}
 
-			if session == nil || !session.Active {
-				logger.Info("session not active", zap.String("session_id", sessionID.String()))
+			if session == nil {
+				logger.Info("session not found", zap.String("session_id", sessionID.String()))
 				clearAuthCookies(c)
 				return unauthorizedResponse(c)
 			}
@@ -63,8 +63,8 @@ func SessionAuth(
 			_, refreshErr := tokenProvider.ParseRefreshToken(refreshCookie.Value)
 			if refreshErr != nil {
 				logger.Info("refresh token expired, clearing session", zap.Error(refreshErr))
-				if deactivateErr := sessionRepo.DeactivateSession(c.Request().Context(), sessionID); deactivateErr != nil {
-					logger.Error("failed to deactivate expired session", zap.Error(deactivateErr))
+				if _, deleteErr := sessionRepo.DeleteSession(c.Request().Context(), sessionID); deleteErr != nil {
+					logger.Error("failed to delete expired session", zap.Error(deleteErr))
 				}
 				clearAuthCookies(c)
 				return unauthorizedResponse(c)

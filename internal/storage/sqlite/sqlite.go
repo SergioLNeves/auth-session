@@ -133,6 +133,22 @@ func (s *SQLiteStorage) Update(ctx context.Context, table string, data any) erro
 	return nil
 }
 
+func (s *SQLiteStorage) FindOneAndDelete(ctx context.Context, table string, id any, dest any) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	result := s.db.WithContext(ctx).Table(table).Where("id = ?", id).First(dest)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if err := s.db.WithContext(ctx).Table(table).Where("id = ?", id).Delete(dest).Error; err != nil {
+		return fmt.Errorf("failed to delete data: %w", err)
+	}
+
+	return nil
+}
+
 func (s *SQLiteStorage) FindByID(ctx context.Context, table string, id any, dest any) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()

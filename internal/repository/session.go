@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/samber/do"
@@ -42,15 +41,10 @@ func (r *SessionRepositoryImpl) FindSessionByID(ctx context.Context, sessionID u
 	return &session, nil
 }
 
-func (r *SessionRepositoryImpl) DeactivateSession(ctx context.Context, sessionID uuid.UUID) error {
-	session, err := r.FindSessionByID(ctx, sessionID)
-	if err != nil {
-		return err
+func (r *SessionRepositoryImpl) DeleteSession(ctx context.Context, sessionID uuid.UUID) (*domain.Session, error) {
+	var session domain.Session
+	if err := r.db.FindOneAndDelete(ctx, TableSession, sessionID, &session); err != nil {
+		return nil, err
 	}
-	if session == nil {
-		return fmt.Errorf("session not found")
-	}
-
-	session.Active = false
-	return r.db.Update(ctx, TableSession, session)
+	return &session, nil
 }

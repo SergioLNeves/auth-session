@@ -12,6 +12,7 @@ type Storage interface {
 type Writer interface {
 	Insert(ctx context.Context, table string, data any) error
 	Update(ctx context.Context, table string, data any) error
+	FindOneAndDelete(ctx context.Context, table string, id any, dest any) error
 }
 
 type Reader interface {

@@ -29,8 +29,8 @@ type User struct {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	Email    string `form:"email" validate:"required,email"`
+	Password string `form:"password" validate:"required"`
 }
 
 type AuthHandler interface {
@@ -41,6 +41,7 @@ type AuthHandler interface {
 
 type AuthService interface {
 	CreateAccount(ctx context.Context, req CreateAccountRequest) (*AuthResponse, error)
+	Login(ctx context.Context, req LoginRequest) (*AuthResponse, error)
 	Logout(ctx context.Context, sessionID string) error
 }
 

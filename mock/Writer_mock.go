@@ -37,6 +37,75 @@ func (_m *MockWriter) EXPECT() *MockWriter_Expecter {
 	return &MockWriter_Expecter{mock: &_m.Mock}
 }
 
+// FindOneAndDelete provides a mock function for the type MockWriter
+func (_mock *MockWriter) FindOneAndDelete(ctx context.Context, table string, id any, dest any) error {
+	ret := _mock.Called(ctx, table, id, dest)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindOneAndDelete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any, any) error); ok {
+		r0 = returnFunc(ctx, table, id, dest)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWriter_FindOneAndDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindOneAndDelete'
+type MockWriter_FindOneAndDelete_Call struct {
+	*mock.Call
+}
+
+// FindOneAndDelete is a helper method to define mock.On call
+//   - ctx context.Context
+//   - table string
+//   - id any
+//   - dest any
+func (_e *MockWriter_Expecter) FindOneAndDelete(ctx interface{}, table interface{}, id interface{}, dest interface{}) *MockWriter_FindOneAndDelete_Call {
+	return &MockWriter_FindOneAndDelete_Call{Call: _e.mock.On("FindOneAndDelete", ctx, table, id, dest)}
+}
+
+func (_c *MockWriter_FindOneAndDelete_Call) Run(run func(ctx context.Context, table string, id any, dest any)) *MockWriter_FindOneAndDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 any
+		if args[2] != nil {
+			arg2 = args[2].(any)
+		}
+		var arg3 any
+		if args[3] != nil {
+			arg3 = args[3].(any)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWriter_FindOneAndDelete_Call) Return(err error) *MockWriter_FindOneAndDelete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWriter_FindOneAndDelete_Call) RunAndReturn(run func(ctx context.Context, table string, id any, dest any) error) *MockWriter_FindOneAndDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Insert provides a mock function for the type MockWriter
 func (_mock *MockWriter) Insert(ctx context.Context, table string, data any) error {
 	ret := _mock.Called(ctx, table, data)

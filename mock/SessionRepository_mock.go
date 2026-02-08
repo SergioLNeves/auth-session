@@ -96,36 +96,47 @@ func (_c *MockSessionRepository_CreateSession_Call) RunAndReturn(run func(ctx co
 	return _c
 }
 
-// DeactivateSession provides a mock function for the type MockSessionRepository
-func (_mock *MockSessionRepository) DeactivateSession(ctx context.Context, sessionID uuid.UUID) error {
+// DeleteSession provides a mock function for the type MockSessionRepository
+func (_mock *MockSessionRepository) DeleteSession(ctx context.Context, sessionID uuid.UUID) (*domain.Session, error) {
 	ret := _mock.Called(ctx, sessionID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for DeactivateSession")
+		panic("no return value specified for DeleteSession")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+	var r0 *domain.Session
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*domain.Session, error)); ok {
+		return returnFunc(ctx, sessionID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) *domain.Session); ok {
 		r0 = returnFunc(ctx, sessionID)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.Session)
+		}
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
-// MockSessionRepository_DeactivateSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeactivateSession'
-type MockSessionRepository_DeactivateSession_Call struct {
+// MockSessionRepository_DeleteSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteSession'
+type MockSessionRepository_DeleteSession_Call struct {
 	*mock.Call
 }
 
-// DeactivateSession is a helper method to define mock.On call
+// DeleteSession is a helper method to define mock.On call
 //   - ctx context.Context
 //   - sessionID uuid.UUID
-func (_e *MockSessionRepository_Expecter) DeactivateSession(ctx interface{}, sessionID interface{}) *MockSessionRepository_DeactivateSession_Call {
-	return &MockSessionRepository_DeactivateSession_Call{Call: _e.mock.On("DeactivateSession", ctx, sessionID)}
+func (_e *MockSessionRepository_Expecter) DeleteSession(ctx interface{}, sessionID interface{}) *MockSessionRepository_DeleteSession_Call {
+	return &MockSessionRepository_DeleteSession_Call{Call: _e.mock.On("DeleteSession", ctx, sessionID)}
 }
 
-func (_c *MockSessionRepository_DeactivateSession_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockSessionRepository_DeactivateSession_Call {
+func (_c *MockSessionRepository_DeleteSession_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockSessionRepository_DeleteSession_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -143,12 +154,12 @@ func (_c *MockSessionRepository_DeactivateSession_Call) Run(run func(ctx context
 	return _c
 }
 
-func (_c *MockSessionRepository_DeactivateSession_Call) Return(err error) *MockSessionRepository_DeactivateSession_Call {
-	_c.Call.Return(err)
+func (_c *MockSessionRepository_DeleteSession_Call) Return(session *domain.Session, err error) *MockSessionRepository_DeleteSession_Call {
+	_c.Call.Return(session, err)
 	return _c
 }
 
-func (_c *MockSessionRepository_DeactivateSession_Call) RunAndReturn(run func(ctx context.Context, sessionID uuid.UUID) error) *MockSessionRepository_DeactivateSession_Call {
+func (_c *MockSessionRepository_DeleteSession_Call) RunAndReturn(run func(ctx context.Context, sessionID uuid.UUID) (*domain.Session, error)) *MockSessionRepository_DeleteSession_Call {
 	_c.Call.Return(run)
 	return _c
 }

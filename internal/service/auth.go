@@ -6,8 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/samber/do"
+	"go.uber.org/zap"
 
 	"github.com/SergioLNeves/auth-session/internal/domain"
+	"github.com/SergioLNeves/auth-session/internal/pkg/logging"
 	"github.com/SergioLNeves/auth-session/internal/security"
 )
 
@@ -56,11 +58,48 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 	session := &domain.Session{
 		ID:     uuid.New(),
 		UserID: user.ID,
-		Active: true,
 	}
 
 	if err := s.sessionRepository.CreateSession(ctx, session); err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, session.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	refreshToken, err := s.tokenProvider.GenerateRefreshToken(user.ID.String(), session.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	return &domain.AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {
+	user, err := s.authRepository.FindUserByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+	if user == nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+
+	if checkErr := security.CheckPassword(req.Password, user.Password); checkErr != nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+
+	session := &domain.Session{
+		ID:     uuid.New(),
+		UserID: user.ID,
+	}
+
+	if createErr := s.sessionRepository.CreateSession(ctx, session); createErr != nil {
+		return nil, fmt.Errorf("failed to create session: %w", createErr)
 	}
 
 	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, session.ID.String())
@@ -85,9 +124,16 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, sessionID string) error {
 		return fmt.Errorf("invalid session ID: %w", err)
 	}
 
-	if err := s.sessionRepository.DeactivateSession(ctx, id); err != nil {
-		return fmt.Errorf("failed to deactivate session: %w", err)
+	session, err := s.sessionRepository.DeleteSession(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete session: %w", err)
 	}
+
+	logging.With(zap.String("service", "AuthService.Logout")).
+		Info("session deleted",
+			zap.String("session_id", session.ID.String()),
+			zap.String("user_id", session.UserID.String()),
+		)
 
 	return nil
 }
