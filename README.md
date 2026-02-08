@@ -1,24 +1,24 @@
 # Auth Session
 
-Serviço de autenticação em Go com JWT (RS256) e gerenciamento de sessões persistidas em banco de dados. Construído com o framework Echo, SQLite (GORM) e injeção de dependências via `samber/do`.
+Servico de autenticacao em Go com JWT (RS256) e gerenciamento de sessoes persistidas em banco de dados. Construido com o framework Echo, SQLite (GORM) e injecao de dependencias via `samber/do`.
 
-Este repositório tem fins de estudo e documentação de um fluxo completo de autenticação: criação de conta, login automático, gerenciamento de sessões e logout com invalidação server-side.
+Este repositorio tem fins de estudo e documentacao de um fluxo completo de autenticacao: criacao de conta, login, gerenciamento de sessoes e logout com invalidacao server-side.
 
 ## Requisitos
 
 - Go 1.25.4+
-- OpenSSL (para geração das chaves RSA)
+- OpenSSL (para geracao das chaves RSA)
 - Make
 
-## Configuração Inicial
+## Configuracao Inicial
 
 ```bash
 make setup
 ```
 
-Este comando instala as dependências do projeto, ferramentas de desenvolvimento (mockery, golangci-lint, air) e gera o par de chaves RSA necessário para assinatura dos tokens.
+Este comando instala as dependencias do projeto, ferramentas de desenvolvimento (mockery, golangci-lint, air) e gera o par de chaves RSA necessario para assinatura dos tokens.
 
-### Variáveis de Ambiente
+### Variaveis de Ambiente
 
 Crie um arquivo `.env` na raiz do projeto:
 
@@ -39,18 +39,21 @@ DB_MAX_IDLE=5
 DB_MAX_LIFETIME=1h
 ```
 
-| Variável | Descrição | Padrão |
+| Variavel | Descricao | Padrao |
 |---|---|---|
-| `ENV` | Ambiente de execução (`development` ou `production`) | `development` |
+| `ENV` | Ambiente de execucao (`development` ou `production`) | `development` |
 | `PORT` | Porta do servidor HTTP | `8080` |
-| `LOG_LEVEL` | Nível de log (`debug`, `info`, `warn`, `error`) | `debug` |
+| `LOG_LEVEL` | Nivel de log (`debug`, `info`, `warn`, `error`) | `debug` |
 | `PRIVATE_KEY_PATH` | Caminho para a chave privada RSA (.pem) | - |
-| `PUBLIC_KEY_PATH` | Caminho para a chave pública RSA (.pem) | - |
-| `ACCESS_TOKEN_EXPIRY` | Tempo de expiração do access token (minutos) | `60` |
-| `REFRESH_TOKEN_EXPIRY` | Tempo de expiração do refresh token (minutos) | `10080` (7 dias) |
+| `PUBLIC_KEY_PATH` | Caminho para a chave publica RSA (.pem) | - |
+| `ACCESS_TOKEN_EXPIRY` | Tempo de expiracao do access token (minutos) | `60` |
+| `REFRESH_TOKEN_EXPIRY` | Tempo de expiracao do refresh token (minutos) | `10080` (7 dias) |
 | `DB_PATH` | Caminho do banco SQLite | `./data/auth-session.db` |
+| `DB_MAX_CONN` | Numero maximo de conexoes abertas | `10` |
+| `DB_MAX_IDLE` | Numero maximo de conexoes ociosas | `5` |
+| `DB_MAX_LIFETIME` | Tempo de vida maximo de uma conexao | `1h` |
 
-## Execução
+## Execucao
 
 ```bash
 make run
@@ -58,74 +61,76 @@ make run
 
 O servidor inicia com hot reload via Air na porta configurada.
 
-## Comandos Disponíveis
+## Comandos Disponiveis
 
-| Comando | Descrição |
+| Comando | Descricao |
 |---|---|
-| `make setup` | Instala dependências, ferramentas e gera chaves RSA |
-| `make run` | Executa a aplicação com hot reload (Air) |
+| `make setup` | Instala dependencias, ferramentas e gera chaves RSA |
+| `make run` | Executa a aplicacao com hot reload (Air) |
 | `make gen-key` | Gera par de chaves RSA (private-key.pem e public-key.pem) |
 | `make mocks` | Gera mocks para testes com Mockery |
 | `make lint` | Executa o linter (golangci-lint) |
+| `make help` | Exibe os comandos disponiveis |
 
 ## Arquitetura
 
-O projeto segue uma arquitetura em camadas com separação estrita de responsabilidades:
+O projeto segue uma arquitetura em camadas com separacao estrita de responsabilidades:
 
 ```
-cmd/api/main.go                  → Ponto de entrada, DI e rotas
+cmd/api/main.go                  -> Ponto de entrada, DI e rotas
 internal/
-  ├─ handler/                     → Camada HTTP (validação, bind, cookies)
-  ├─ service/                     → Lógica de negócio
-  ├─ repository/                  → Acesso a dados
-  ├─ storage/sqlite/              → Implementação SQLite (GORM)
-  ├─ domain/                      → Entidades, DTOs e interfaces
-  ├─ security/                    → JWT (RS256) e bcrypt
-  ├─ config/                      → Configuração e ambiente
-  └─ pkg/                         → Utilitários (logging, validação, erros)
+  |- handler/                    -> Camada HTTP (validacao, bind, cookies)
+  |- middleware/                  -> Middleware de autenticacao de sessao
+  |- service/                    -> Logica de negocio
+  |- repository/                 -> Acesso a dados
+  |- storage/sqlite/             -> Implementacao SQLite (GORM)
+  |- domain/                     -> Entidades, DTOs e interfaces
+  |- security/                   -> JWT (RS256) e bcrypt
+  |- config/                     -> Configuracao e ambiente
+  +- pkg/                        -> Utilitarios (logging, validacao, erros)
 assets/
-  ├─ html/                        → Páginas HTML (login, criar conta, etc.)
-  ├─ css/                         → Estilos
-  └─ js/                          → Scripts (auth, formulários)
+  |- html/                       -> Paginas HTML (login, criar conta, etc.)
+  |- css/                        -> Estilos
+  +- js/                         -> Scripts (auth, formularios)
 ```
 
-### Fluxo de uma Requisição
+### Fluxo de uma Requisicao
 
 ```
-HTTP Request → Handler → Service → Repository → Storage (SQLite)
-                 │
-                 └── Resposta retorna pelo mesmo caminho
+HTTP Request -> Middleware (SessionAuth) -> Handler -> Service -> Repository -> Storage (SQLite)
+                                             |
+                                             +-- Resposta retorna pelo mesmo caminho
 ```
 
-### Injeção de Dependências
+### Injecao de Dependencias
 
-Todas as dependências são registradas em `cmd/api/main.go` usando `samber/do`:
+Todas as dependencias sao registradas em `cmd/api/main.go` usando `samber/do`:
 
 ```
-SQLite → Repositories → JWTProvider → Services → Handlers
+SQLite -> Repositories -> JWTProvider -> BcryptHasher -> Services -> Handlers
 ```
 
 ## Endpoints da API
 
-### Páginas
+### Paginas
 
-| Método | Rota | Descrição |
+| Metodo | Rota | Descricao |
 |---|---|---|
-| `GET` | `/` | Página de sucesso (requer autenticação) |
-| `GET` | `/create-account` | Formulário de criação de conta |
-| `GET` | `/login` | Formulário de login |
-| `GET` | `/password` | Formulário de recuperação de senha |
+| `GET` | `/` | Pagina de sucesso (requer autenticacao) |
+| `GET` | `/create-account` | Formulario de criacao de conta |
+| `GET` | `/login` | Formulario de login |
+| `GET` | `/password` | Formulario de recuperacao de senha |
 
 ### API REST
 
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/health` | Health check |
-| `POST` | `/v1/user/create-account` | Criação de conta |
-| `POST` | `/v1/auth/login` | Login |
-| `POST` | `/v1/auth/logout` | Logout (invalida sessão) |
+| Metodo | Rota | Auth | Descricao |
+|---|---|---|---|
+| `GET` | `/health` | Nao | Health check |
+| `POST` | `/v1/user/create-account` | Nao | Criacao de conta |
+| `POST` | `/v1/auth/login` | Nao | Login com email e senha |
+| `POST` | `/v1/auth/logout` | Sim (SessionAuth) | Logout (deleta sessao do banco) |
 
-### Exemplos de Requisição
+### Exemplos de Requisicao
 
 **Criar conta:**
 ```bash
@@ -134,7 +139,14 @@ curl -X POST http://localhost:8080/v1/user/create-account \
   -d "password=senha12345"
 ```
 
-**Resposta (201 Created):**
+**Login:**
+```bash
+curl -X POST http://localhost:8080/v1/auth/login \
+  -d "email=usuario@exemplo.com" \
+  -d "password=senha12345"
+```
+
+**Resposta (201 Created / 200 OK):**
 ```json
 {
   "access_token": "eyJhbGciOiJSUzI1NiIs...",
@@ -142,99 +154,109 @@ curl -X POST http://localhost:8080/v1/user/create-account \
 }
 ```
 
-Os tokens também são setados automaticamente como cookies na resposta.
+Os tokens tambem sao setados automaticamente como cookies na resposta.
 
 **Logout:**
 ```bash
 curl -X POST http://localhost:8080/v1/auth/logout \
-  --cookie "access_token=eyJhbGciOiJSUzI1NiIs..."
+  --cookie "access_token=eyJhbGciOiJSUzI1NiIs..." \
+  --cookie "refresh_token=eyJhbGciOiJSUzI1NiIs..."
 ```
 
-## Autenticação
+## Autenticacao
 
 ### JWT com RS256
 
-O sistema utiliza tokens JWT assinados com chaves RSA assimétricas (RS256):
+O sistema utiliza tokens JWT assinados com chaves RSA assimetricas (RS256):
 
-- **Chave privada** — usada para assinar os tokens (mantida no servidor)
-- **Chave pública** — usada para validar assinaturas e parsear tokens
+- **Chave privada** -- usada para assinar os tokens (mantida no servidor)
+- **Chave publica** -- usada para validar assinaturas e parsear tokens
 
-Os arquivos `.pem` são gerados via `make gen-key` e **nunca devem ser comitados** (já estão no `.gitignore`).
+Os arquivos `.pem` sao gerados via `make gen-key` e **nunca devem ser comitados** (ja estao no `.gitignore`).
 
 ### Tokens
 
-| Token | Expiração Padrão | Claims | Cookie |
+| Token | Expiracao Padrao | Claims | Cookie |
 |---|---|---|---|
-| Access Token | 60 min | `sub`, `email`, `session_id`, `iat`, `exp` | `access_token` (legível pelo JS) |
+| Access Token | 60 min | `sub`, `email`, `session_id`, `iat`, `exp` | `access_token` (legivel pelo JS) |
 | Refresh Token | 7 dias | `sub`, `session_id`, `iat`, `exp` | `refresh_token` (HttpOnly) |
 
-O `access_token` é legível pelo JavaScript para permitir a extração de claims no frontend (ex.: exibir email do usuário). O `refresh_token` é HttpOnly, inacessível via JS.
+O `access_token` e legivel pelo JavaScript para permitir a extracao de claims no frontend (ex.: exibir email do usuario). O `refresh_token` e HttpOnly, inacessivel via JS.
 
-Ambos os cookies utilizam `SameSite=Strict` e `Secure=true` em produção.
+Ambos os cookies utilizam `SameSite=Strict` e `Secure=true` em producao.
 
-### Gerenciamento de Sessões
+### Middleware de Autenticacao (SessionAuth)
 
-As sessões são persistidas no banco de dados (tabela `session_tables`):
+O middleware `SessionAuth` protege rotas que requerem autenticacao. Ele executa o seguinte fluxo:
 
-| Campo | Tipo | Descrição |
+1. Le o cookie `access_token` (permite tokens expirados via `WithoutClaimsValidation`)
+2. Extrai o `session_id` dos claims JWT
+3. Verifica se a sessao existe no banco de dados
+4. Valida o `refresh_token`:
+   - Se expirado: **deleta a sessao** do banco e limpa os cookies
+   - Se valido: **regenera ambos os tokens** (access e refresh) e seta novos cookies
+5. Injeta `user_id`, `email` e `session_id` no contexto do Echo via `c.Set()`
+
+### Gerenciamento de Sessoes
+
+As sessoes sao persistidas no banco de dados (tabela `session_tables`):
+
+| Campo | Tipo | Descricao |
 |---|---|---|
-| `id` | UUID | Identificador único da sessão |
-| `user_id` | UUID | Referência ao usuário |
-| `active` | boolean | Estado da sessão (`true`/`false`) |
-| `created_at` | timestamp | Data de criação |
-| `updated_at` | timestamp | Última atualização |
+| `id` | UUID | Identificador unico da sessao |
+| `user_id` | UUID | Referencia ao usuario |
+| `created_at` | TIMESTAMP | Data de criacao |
+| `updated_at` | TIMESTAMP | Ultima atualizacao |
 
-O `session_id` é incluído nos claims de ambos os tokens JWT, vinculando cada token a uma sessão específica no banco.
+O `session_id` e incluido nos claims de ambos os tokens JWT, vinculando cada token a uma sessao especifica no banco.
 
-### Segurança de Senhas
+No logout, a sessao e **deletada** do banco (nao apenas desativada). Isso garante que tokens associados a sessao nao possam mais ser usados.
 
-As senhas são armazenadas com hash bcrypt (cost 12). Nunca são armazenadas ou trafegadas em texto plano.
+### Seguranca de Senhas
+
+As senhas sao armazenadas com hash bcrypt (cost 12). Nunca sao armazenadas ou trafegadas em texto plano.
 
 ## Fluxos
 
-### Criação de Conta
+### Criacao de Conta
 
-{fluxo de criação de conta}
-
-1. Usuário preenche o formulário em `/create-account`
+1. Usuario preenche o formulario em `/create-account`
 2. JavaScript envia `POST /v1/user/create-account` com email e senha
-3. Handler valida os campos (email válido, senha mínimo 8 caracteres)
-4. Service verifica se o email já existe no banco
-5. Senha é hasheada com bcrypt
-6. Usuário é criado no banco
-7. Sessão é criada no banco (`active=true`)
-8. Access token e refresh token são gerados (RS256) com `session_id` nos claims
-9. Tokens são setados como cookies na resposta HTTP
-10. Usuário é redirecionado para `/` (página de sucesso)
+3. Handler valida os campos (email valido, senha minimo 8 caracteres)
+4. Service verifica se o email ja existe no banco
+5. Senha e hasheada com bcrypt (cost 12)
+6. Usuario e criado no banco
+7. Sessao e criada no banco com um UUID
+8. Access token e refresh token sao gerados (RS256) com `session_id` nos claims
+9. Tokens sao setados como cookies na resposta HTTP
+10. Resposta retorna os tokens em JSON (status 201)
 
 ### Login
 
-{fluxo de login}
-
-1. Usuário preenche o formulário em `/login`
-2. `POST /v1/auth/login` com email e senha
-3. Service busca usuário por email e verifica a senha com bcrypt
-4. Nova sessão é criada no banco
-5. Tokens são gerados e setados como cookies
-6. Usuário é redirecionado
+1. Usuario preenche o formulario em `/login`
+2. JavaScript envia `POST /v1/auth/login` com email e senha
+3. Handler valida os campos
+4. Service busca usuario por email no banco
+5. Senha e verificada com bcrypt (`CompareHashAndPassword`)
+6. Se credenciais invalidas, retorna erro `401 Unauthorized`
+7. Nova sessao e criada no banco com um UUID
+8. Access token e refresh token sao gerados (RS256) com `session_id` nos claims
+9. Tokens sao setados como cookies na resposta HTTP
+10. Resposta retorna os tokens em JSON (status 200)
 
 ### Logout
 
-{fluxo de logout}
-
-1. Usuário clica em "Sair" na página de sucesso
+1. Usuario clica em "Sair" na pagina de sucesso
 2. JavaScript envia `POST /v1/auth/logout`
-3. Handler lê o cookie `access_token`
-4. Service parseia o JWT e extrai o `session_id` dos claims
-5. Sessão é marcada como `active=false` no banco
-6. Cookies `access_token` e `refresh_token` são limpos
-7. Usuário é redirecionado para `/login`
-
-O logout é idempotente: se não houver cookie, os cookies são limpos e a resposta é 200 OK. O `ParseAccessToken` utiliza `WithoutClaimsValidation` para permitir logout mesmo com token expirado.
+3. Middleware `SessionAuth` valida a sessao e injeta `session_id` no contexto
+4. Handler le o `session_id` do contexto do Echo
+5. Service parseia o UUID e **deleta a sessao** do banco via `FindOneAndDelete`
+6. Cookies `access_token` e `refresh_token` sao limpos (MaxAge=-1)
+7. Resposta retorna status `200 OK` sem corpo
 
 ## Tratamento de Erros
 
-O projeto utiliza o padrão **ProblemDetails** (RFC 7807) para respostas de erro HTTP:
+O projeto utiliza o padrao **ProblemDetails** (RFC 7807) para respostas de erro HTTP:
 
 ```json
 {
@@ -246,7 +268,7 @@ O projeto utiliza o padrão **ProblemDetails** (RFC 7807) para respostas de erro
 }
 ```
 
-Erros de validação incluem detalhes por campo:
+Erros de validacao incluem detalhes por campo:
 
 ```json
 {
@@ -262,29 +284,30 @@ Erros de validação incluem detalhes por campo:
 
 ## Tecnologias
 
-| Tecnologia | Utilização |
+| Tecnologia | Utilizacao |
 |---|---|
-| [Go](https://go.dev/) | Linguagem |
-| [Echo](https://echo.labstack.com/) | Framework HTTP |
+| [Go 1.25.4](https://go.dev/) | Linguagem |
+| [Echo v4](https://echo.labstack.com/) | Framework HTTP |
 | [GORM](https://gorm.io/) | ORM |
 | [SQLite](https://www.sqlite.org/) | Banco de dados |
-| [golang-jwt](https://github.com/golang-jwt/jwt) | Geração e validação de JWT (RS256) |
-| [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt) | Hash de senhas |
-| [samber/do](https://github.com/samber/do) | Injeção de dependências |
+| [golang-jwt v5](https://github.com/golang-jwt/jwt) | Geracao e validacao de JWT (RS256) |
+| [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt) | Hash de senhas (cost 12) |
+| [samber/do](https://github.com/samber/do) | Injecao de dependencias |
 | [Zap](https://github.com/uber-go/zap) | Logging estruturado |
+| [validator v10](https://github.com/go-playground/validator) | Validacao de structs |
 | [Air](https://github.com/air-verse/air) | Hot reload |
-| [Mockery](https://github.com/vektra/mockery) | Geração de mocks |
-| [golangci-lint](https://golangci-lint.run/) | Linter |
+| [Mockery v3](https://github.com/vektra/mockery) | Geracao de mocks |
+| [golangci-lint v2](https://golangci-lint.run/) | Linter |
 
 ## Banco de Dados
 
-O projeto utiliza SQLite com GORM. As migrações são executadas automaticamente na inicialização da aplicação.
+O projeto utiliza SQLite com GORM. As migracoes sao executadas automaticamente na inicializacao da aplicacao.
 
 ### Tabelas
 
 **user_tables**
 
-| Campo | Tipo | Restrições |
+| Campo | Tipo | Restricoes |
 |---|---|---|
 | `id` | UUID | Primary Key |
 | `email` | VARCHAR(100) | Unique, Not Null |
@@ -295,14 +318,29 @@ O projeto utiliza SQLite com GORM. As migrações são executadas automaticament
 
 **session_tables**
 
-| Campo | Tipo | Restrições |
+| Campo | Tipo | Restricoes |
 |---|---|---|
 | `id` | UUID | Primary Key |
 | `user_id` | UUID | Not Null, Index |
-| `active` | BOOLEAN | Default: true |
 | `created_at` | TIMESTAMP | |
 | `updated_at` | TIMESTAMP | |
 
-## Licença
+> Sessoes nao possuem campo `active`. No logout, a sessao e fisicamente deletada do banco via `FindOneAndDelete`.
 
-Este projeto é destinado a fins de estudo.
+## Testes
+
+```bash
+go test ./...                                        # Todos os testes
+go test ./internal/service/... -run TestLogin -v     # Teste especifico
+```
+
+O projeto utiliza mocks gerados pelo Mockery com o framework testify. Os testes seguem o padrao Arrange/Act/Assert com subtestes paralelos.
+
+Arquivos de teste existentes:
+- `internal/handler/auth_test.go`
+- `internal/service/auth_test.go`
+- `internal/middleware/session_auth_test.go`
+
+## Licenca
+
+Este projeto e destinado a fins de estudo.

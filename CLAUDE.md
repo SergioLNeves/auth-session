@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Go-based authentication service implementing JWT authentication with RS256 (asymmetric signing) and database-backed session management. Built with Echo framework, SQLite (GORM) for data persistence, and `samber/do` for dependency injection. On logout, sessions are deactivated server-side (not just cookie clearing).
+This is a Go-based authentication service implementing JWT authentication with RS256 (asymmetric signing) and database-backed session management. Built with Echo framework, SQLite (GORM) for data persistence, and `samber/do` for dependency injection. On logout, sessions are deleted from the database (not just cookie clearing).
 
 ## Development Commands
 
@@ -38,28 +38,30 @@ The keys are required for JWT signing/verification. Never commit `.pem` files (a
 The project follows a **layered architecture** with strict separation of concerns:
 
 ```
-cmd/api/main.go              → Entry point; DI container setup; route configuration
+cmd/api/main.go              -> Entry point; DI container setup; route configuration
 internal/
-  ├─ handler/                → HTTP handlers (presentation layer)
-  ├─ service/                → Business logic orchestration
-  ├─ repository/             → Data access (auth and session repositories)
-  ├─ storage/sqlite/         → SQLite implementation (GORM)
-  ├─ domain/                 → Core entities, DTOs, and interface definitions
-  ├─ config/                 → Configuration and environment management
-  ├─ pkg/                    → Reusable utilities (logging, validation, error handling)
-  └─ security/               → JWT (RS256 signing/parsing) and bcrypt password hashing
+  |- handler/                -> HTTP handlers (presentation layer)
+  |- middleware/              -> Session authentication middleware
+  |- service/                -> Business logic orchestration
+  |- repository/             -> Data access (auth and session repositories)
+  |- storage/sqlite/         -> SQLite implementation (GORM)
+  |- domain/                 -> Core entities, DTOs, and interface definitions
+  |- config/                 -> Configuration and environment management
+  |- pkg/                    -> Reusable utilities (logging, validation, error handling)
+  +- security/               -> JWT (RS256 signing/parsing) and bcrypt password hashing
 assets/
-  ├─ html/                   → Pages (create-account, login, password, success)
-  ├─ css/                    → Stylesheets
-  └─ js/                     → Scripts (auth utilities, form handlers)
+  |- html/                   -> Pages (create-account, login, password, success)
+  |- css/                    -> Stylesheets
+  +- js/                     -> Scripts (auth utilities, form handlers)
 ```
 
 ### Request Flow
-1. HTTP request → **Handler** (validates input, converts to DTOs)
-2. Handler → **Service** (executes business logic)
-3. Service → **Repository interface** (defined in domain)
-4. Repository → **Storage implementation** (SQLite)
-5. Response flows back through the same layers
+1. HTTP request -> **Middleware** (SessionAuth for protected routes)
+2. Middleware -> **Handler** (validates input, converts to DTOs)
+3. Handler -> **Service** (executes business logic)
+4. Service -> **Repository interface** (defined in domain)
+5. Repository -> **Storage implementation** (SQLite)
+6. Response flows back through the same layers
 
 ### Dependency Injection
 
@@ -67,7 +69,7 @@ The project uses `github.com/samber/do` for dependency injection. All dependenci
 
 **Registration order:**
 ```
-SQLite → AuthRepository → SessionRepository → JWTProvider → Services → Handlers
+Logger -> SQLite -> AuthRepository -> SessionRepository -> JWTProvider -> BcryptHasher -> Services -> Handlers
 ```
 
 **Pattern for new components:**
@@ -138,7 +140,7 @@ if err := validatorpkg.NewValidator().Validate(request); err != nil {
 
 ### Database Models
 
-GORM is used for SQLite interaction. Domain entities use GORM tags. Storage models live in `internal/storage/sqlite/models.go`:
+GORM is used for SQLite interaction. Storage models live in `internal/storage/sqlite/models.go`:
 
 ```go
 type UserTable struct {
@@ -146,6 +148,13 @@ type UserTable struct {
     Email     string    `gorm:"uniqueIndex;not null"`
     Password  string    `gorm:"not null"`
     Active    bool      `gorm:"default:true"`
+    CreatedAt time.Time
+    UpdatedAt time.Time
+}
+
+type SessionTable struct {
+    ID        uuid.UUID `gorm:"type:uuid;primary_key"`
+    UserID    uuid.UUID `gorm:"type:uuid;not null;index"`
     CreatedAt time.Time
     UpdatedAt time.Time
 }
@@ -158,10 +167,19 @@ Repository implementations use table name constants (e.g., `TableUser = "user_ta
 The storage layer exposes generic methods with table name parameters:
 
 ```go
+type Storage interface {
+    Ping(ctx context.Context) error
+    Writer   // Insert, Update, FindOneAndDelete
+    Reader   // GetDB
+    Querier  // FindByEmail, FindByID
+}
+
 type Writer interface {
     Insert(ctx context.Context, table string, data any) error
     Update(ctx context.Context, table string, data any) error
+    FindOneAndDelete(ctx context.Context, table string, id any, dest any) error
 }
+
 type Querier interface {
     FindByEmail(ctx context.Context, table, email string, dest any) error
     FindByID(ctx context.Context, table string, id any, dest any) error
@@ -171,10 +189,11 @@ type Querier interface {
 ## Authentication Implementation
 
 ### Current State
-- **Account creation**: `POST /v1/user/create-account` — full flow with session creation and JWT generation
-- **Login**: `POST /v1/auth/login` — handler stub (needs implementation)
-- **Logout**: `POST /v1/auth/logout` — reads access_token cookie, deactivates session in DB, clears cookies
-- **Password hashing**: bcrypt cost 12 (`internal/security/bcrypt.go`)
+- **Account creation**: `POST /v1/user/create-account` -- full flow with validation, bcrypt hash, session creation and JWT generation
+- **Login**: `POST /v1/auth/login` -- full flow with email/password verification, session creation and JWT generation
+- **Logout**: `POST /v1/auth/logout` -- protected by SessionAuth middleware, deletes session from DB, clears cookies
+- **Session auth middleware**: `internal/middleware/session_auth.go` -- validates session, handles refresh token rotation
+- **Password hashing**: bcrypt cost 12 (`internal/security/bcrypt.go`) via `PasswordHasher` interface
 
 ### JWT (RS256)
 
@@ -182,24 +201,36 @@ Token generation and parsing is handled by `internal/security/jwt.go` (`JWTProvi
 - Loads both private key (signing) and public key (verification) from PEM files at startup
 - Access token claims: `sub` (userID), `email`, `session_id`, `iat`, `exp`
 - Refresh token claims: `sub` (userID), `session_id`, `iat`, `exp`
-- `ParseAccessToken` uses `jwt.WithoutClaimsValidation()` to allow parsing expired tokens (needed for logout)
+- `ParseAccessToken` uses `jwt.WithoutClaimsValidation()` to allow parsing expired tokens (needed for middleware refresh flow)
 - Expiry durations are configured via environment variables in **minutes**
 
 ### Sessions
 
-Sessions are persisted in `session_tables` (SQLite). Each login/account creation produces a new session row with a UUID. The session ID is embedded as `session_id` in JWT claims. On logout, the session is marked `active=false`.
+Sessions are persisted in `session_tables` (SQLite). Each login/account creation produces a new session row with a UUID. The session ID is embedded as `session_id` in JWT claims. On logout, the session is **deleted** from the database via `FindOneAndDelete` (not deactivated -- the session table has no `active` field).
 
 Key interfaces:
-- `domain.SessionRepository`: `CreateSession`, `FindSessionByID`, `DeactivateSession`
+- `domain.SessionRepository`: `CreateSession`, `FindSessionByID`, `DeleteSession`
 - Implemented in `internal/repository/session.go`
+
+### Session Auth Middleware
+
+`internal/middleware/session_auth.go` protects authenticated routes:
+1. Parses access token (allows expired via `WithoutClaimsValidation`)
+2. Validates session exists in DB
+3. Checks refresh token:
+   - If expired: deletes session from DB, clears cookies, returns 401
+   - If valid: regenerates both tokens, sets new cookies
+4. Injects `user_id`, `email`, `session_id` into Echo context via `c.Set()`
+
+Applied per-route: `authGroup.POST("/logout", handler.Logout, sessionAuth)`
 
 ### Cookies
 
-Auth cookies are set via `setAuthCookies()` in the handler:
+Auth cookies are set via `setAuthCookies()` in both handler and middleware:
 - `access_token`: **not** HttpOnly (readable by JS for claim extraction), SameSite=Strict, Secure in production
 - `refresh_token`: HttpOnly, SameSite=Strict, Secure in production
-- MaxAge is derived from env variables (minutes × 60 = seconds)
-- Cleared via `clearAuthCookies()` on logout
+- MaxAge is derived from env variables (minutes x 60 = seconds)
+- Cleared via `clearAuthCookies()` on logout (MaxAge=-1)
 
 ### Frontend Auth
 
@@ -216,10 +247,14 @@ Environment variables are loaded from `.env` and parsed into `internal/domain/en
 **Key environment variables:**
 - `ENV`: `development` or `production` (affects cookie Secure flag)
 - `PORT`: Server port (default 8080)
+- `LOG_LEVEL`: Log level - debug, info, warn, error (default debug)
 - `PRIVATE_KEY_PATH` / `PUBLIC_KEY_PATH`: RSA key file paths
 - `ACCESS_TOKEN_EXPIRY`: Access token lifetime in minutes (default 60)
 - `REFRESH_TOKEN_EXPIRY`: Refresh token lifetime in minutes (default 10080)
 - `DB_PATH`: SQLite database file path
+- `DB_MAX_CONN`: Max open connections (default 10)
+- `DB_MAX_IDLE`: Max idle connections (default 5)
+- `DB_MAX_LIFETIME`: Max connection lifetime (default 1h)
 
 ## Testing
 
@@ -238,7 +273,14 @@ Configuration: `.mockery.yml`
 
 ### Testing Conventions
 - Mocks use testify framework (`github.com/stretchr/testify`)
-- Test files follow `*_test.go` naming (excluded from Air builds)
+- Test files follow `*_test.go` naming, same package as source
+- Arrange/Act/Assert pattern with `t.Parallel()` in subtests
+- See `.claude/rules/Test_Example.md` for detailed conventions
+
+### Existing Tests
+- `internal/handler/auth_test.go`
+- `internal/service/auth_test.go`
+- `internal/middleware/session_auth_test.go`
 
 ## Code Style and Linting
 
@@ -277,3 +319,4 @@ Linting configuration in `.golangci.yml`:
 - SQLite database location is configured via the `DB_PATH` env variable
 - Assets (HTML, CSS, JS) are in `assets/` directory, served as static files via Echo
 - Static assets are served at `/css`, `/js`; HTML pages at `/`, `/create-account`, `/login`, `/password`
+- Password recovery is not yet implemented (only static HTML page exists)

@@ -1,36 +1,111 @@
-# Guia de Contribuição
+# Guia de Contribuicao
 
-Este documento fornece diretrizes para contribuir com o projeto, com foco nas convenções de código Go.
+Este documento fornece diretrizes para contribuir com o projeto, com foco nas convencoes de codigo Go.
 
-## Estilo de Código e Padrões (Golang)
+## Configuracao do Ambiente
 
-Aderimos às práticas padrão da comunidade Go para garantir que o código seja limpo, legível e consistente.
+```bash
+make setup    # Instala dependencias, ferramentas (mockery, golangci-lint, air) e gera chaves RSA
+make run      # Executa com hot reload
+make lint     # Executa o linter
+make mocks    # Gera mocks para testes
+```
 
-### 1. Formatação
-Todo o código Go **deve** ser formatado com `gofmt`. Antes de submeter qualquer alteração, execute `gofmt -s -w .` no diretório do projeto. A maioria dos IDEs pode ser configurada para fazer isso automaticamente ao salvar.
+## Estilo de Codigo e Padroes (Golang)
+
+Aderimos as praticas padrao da comunidade Go para garantir que o codigo seja limpo, legivel e consistente.
+
+### 1. Formatacao
+
+Todo o codigo Go **deve** ser formatado com `gofmt`. Antes de submeter qualquer alteracao, execute `gofmt -s -w .` no diretorio do projeto. A maioria dos IDEs pode ser configurada para fazer isso automaticamente ao salvar.
 
 ### 2. Linting
-Utilize `go vet .` para identificar construções suspeitas e `golangci-lint` (se disponível) para uma análise estática mais aprofundada. O código deve passar por essas verificações sem erros.
 
-### 3. Nomenclatura
-- **Pacotes**: Nomes de pacotes devem ser curtos, concisos e em minúsculas. Evite `under_scores` ou `mixedCaps`.
-- **Variáveis**: Nomes de variáveis devem ser curtos, mas descritivos. Para variáveis de escopo muito limitado, nomes de uma ou duas letras (como `i` para um índice de loop) são aceitáveis.
-- **Funções e Métodos**: Use `camelCase`. Nomes que começam com letra maiúscula são exportados (públicos), enquanto nomes que começam com letra minúscula são privados ao pacote.
-- **Interfaces**: Interfaces que definem um único método são frequentemente nomeadas com o sufixo "er" (e.g., `Reader`, `Writer`, `Formatter`).
+O projeto usa `golangci-lint` com configuracao em `.golangci.yml`:
 
-### 4. Comentários
-- **Documentação**: Comente todo membro exportado (funções, tipos, constantes e variáveis). O comentário deve começar com o nome do membro que ele descreve. Ex: `// MinhaFuncao faz X e Y.`.
-- **Clareza**: Use comentários para explicar o *porquê* de uma lógica complexa, não o *o quê*. O código deve ser autoexplicativo sempre que possível.
+- Linters habilitados: gocritic, misspell, revive, unconvert, unparam, whitespace
+- Formatters: gofmt (com simplify), goimports
+
+Execute `make lint` antes de submeter alteracoes.
+
+### 3. Organizacao de Imports
+
+Imports devem ser organizados em tres grupos separados por linhas em branco:
+
+```go
+import (
+    // 1. Biblioteca padrao
+    "context"
+    "fmt"
+
+    // 2. Dependencias externas
+    "github.com/labstack/echo/v4"
+    "github.com/samber/do"
+
+    // 3. Pacotes internos
+    "github.com/SergioLNeves/auth-session/internal/domain"
+)
+```
+
+### 4. Nomenclatura
+
+- **Pacotes**: nomes curtos, concisos e em minusculas. Evite `under_scores` ou `mixedCaps`.
+- **Variaveis**: nomes curtos, mas descritivos. Para escopo limitado, nomes de uma ou duas letras sao aceitaveis.
+- **Funcoes e Metodos**: use `camelCase`. Maiuscula inicial = exportado, minuscula = privado.
+- **Interfaces**: interfaces de um unico metodo frequentemente usam o sufixo "er" (ex.: `Reader`, `Writer`).
 
 ### 5. Tratamento de Erros
-- Erros devem ser tratados explicitamente. Não os ignore com `_`.
-- Mensagens de erro não devem ser capitalizadas ou terminar com pontuação, pois geralmente são encadeadas com outras informações de contexto.
-- Use a função `fmt.Errorf` com a diretiva `%w` para encapsular (wrap) erros, preservando o contexto do erro original.
 
-### 6. Organização de Pacotes
-- Siga a estrutura de diretórios definida em `ARCHITECTURE.md`.
-- Evite dependências circulares entre pacotes.
-- Pacotes devem ter uma responsabilidade clara e coesa.
+- Erros devem ser tratados explicitamente. Nao os ignore com `_`.
+- Mensagens de erro nao devem ser capitalizadas ou terminar com pontuacao.
+- Use `fmt.Errorf` com `%w` para encapsular erros, preservando o contexto.
+- Use o padrao ProblemDetails (RFC 7807) para respostas HTTP de erro.
+
+### 6. Comentarios
+
+- Comente todo membro exportado. O comentario deve comecar com o nome do membro.
+- Use comentarios para explicar o *porque* de uma logica complexa, nao o *o que*.
 
 ### 7. Simplicidade
-Prefira código simples e direto a soluções excessivamente complexas ou "inteligentes". A legibilidade é fundamental. Como diz o provérbio Go: "Clear is better than clever."
+
+Prefira codigo simples e direto. A legibilidade e fundamental. "Clear is better than clever."
+
+## Padrao para Adicionar Novos Componentes
+
+### Novo Endpoint
+
+1. Defina DTOs de request/response em `internal/domain/`
+2. Adicione metodo na interface do domain (ex.: `AuthHandler`, `AuthService`)
+3. Implemente no service e handler correspondentes
+4. Registre a rota em `cmd/api/main.go`
+5. Execute `make mocks` se interfaces foram alteradas
+
+### Nova Operacao de Banco
+
+1. Defina o metodo na interface do repository em `internal/domain/`
+2. Implemente em `internal/repository/` usando constantes de tabela e a interface `Storage`
+3. Se necessario, adicione metodo na interface `Storage` em `internal/storage/storage.go`
+4. Implemente na versao SQLite em `internal/storage/sqlite/sqlite.go`
+5. Modelos GORM ficam em `internal/storage/sqlite/models.go` e devem ser registrados em `GetModelsToMigrate()`
+
+### Novo Provider/Servico
+
+1. Defina a interface em `internal/domain/`
+2. Implemente com construtor `New*` que recebe `*do.Injector`
+3. Registre com `do.Provide(injector, ...)` em `cmd/api/main.go`
+4. Execute `make mocks`
+
+## Testes
+
+Os testes seguem convencoes especificas documentadas em `.claude/rules/Test_Example.md`:
+
+- Testes ficam ao lado do arquivo fonte (`auth.go` -> `auth_test.go`)
+- Mesmo pacote (nao `_test`)
+- Padrao Arrange/Act/Assert com `t.Parallel()` em subtestes
+- Mocks gerados pelo Mockery com framework testify
+- Cubra happy path e error paths
+
+```bash
+go test ./...                                     # Todos os testes
+go test ./internal/service/... -run TestLogin -v  # Teste especifico
+```
