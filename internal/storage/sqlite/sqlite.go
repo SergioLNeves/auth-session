@@ -111,11 +111,11 @@ func (s *SQLiteStorage) AutoMigrate(models ...any) error {
 	return nil
 }
 
-func (s *SQLiteStorage) Insert(ctx context.Context, data any) error {
+func (s *SQLiteStorage) Insert(ctx context.Context, table string, data any) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	result := s.db.WithContext(ctx).Create(data)
+	result := s.db.WithContext(ctx).Table(table).Create(data)
 	if result.Error != nil {
 		return fmt.Errorf("failed to insert data: %w", result.Error)
 	}
@@ -126,11 +126,11 @@ func (s *SQLiteStorage) GetDB() any {
 	return s.db
 }
 
-func (s *SQLiteStorage) FindByEmail(ctx context.Context, email string, dest any) error {
+func (s *SQLiteStorage) FindByEmail(ctx context.Context, table, email string, dest any) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	result := s.db.WithContext(ctx).Where("email = ?", email).First(dest)
+	result := s.db.WithContext(ctx).Table(table).Where("email = ?", email).First(dest)
 	if result.Error != nil {
 		return result.Error
 	}

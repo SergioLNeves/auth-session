@@ -10,7 +10,7 @@ type Storage interface {
 }
 
 type Writer interface {
-	Insert(ctx context.Context, data any) error
+	Insert(ctx context.Context, table string, data any) error
 }
 
 type Reader interface {
@@ -18,5 +18,5 @@ type Reader interface {
 }
 
 type Querier interface {
-	FindByEmail(ctx context.Context, email string, dest any) error
+	FindByEmail(ctx context.Context, table, email string, dest any) error
 }

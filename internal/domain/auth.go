@@ -14,14 +14,12 @@ var (
 )
 
 type CreateAccountRequest struct {
-	Name     string `form:"name" validate:"required"`
 	Email    string `form:"email" validate:"required,email"`
 	Password string `form:"password" validate:"required,min=8"`
 }
 
 type User struct {
 	ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Name      string    `gorm:"type:varchar(100);not null"`
 	Email     string    `gorm:"type:varchar(100);uniqueIndex;not null"`
 	Password  string    `gorm:"not null"`
 	Active    bool      `gorm:"not null;default:true"`
@@ -45,4 +43,5 @@ type AuthService interface {
 
 type AuthRepository interface {
 	CreateUser(ctx context.Context, user *User) error
+	FindUserByEmail(ctx context.Context, email string) (*User, error)
 }
