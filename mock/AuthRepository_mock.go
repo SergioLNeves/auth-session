@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/SergioLNeves/auth-session/internal/domain"
+	"github.com/google/uuid"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -91,6 +92,142 @@ func (_c *MockAuthRepository_CreateUser_Call) Return(err error) *MockAuthReposit
 }
 
 func (_c *MockAuthRepository_CreateUser_Call) RunAndReturn(run func(ctx context.Context, user *domain.User) error) *MockAuthRepository_CreateUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindUserByEmail provides a mock function for the type MockAuthRepository
+func (_mock *MockAuthRepository) FindUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	ret := _mock.Called(ctx, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindUserByEmail")
+	}
+
+	var r0 *domain.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*domain.User, error)); ok {
+		return returnFunc(ctx, email)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *domain.User); ok {
+		r0 = returnFunc(ctx, email)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, email)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthRepository_FindUserByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindUserByEmail'
+type MockAuthRepository_FindUserByEmail_Call struct {
+	*mock.Call
+}
+
+// FindUserByEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - email string
+func (_e *MockAuthRepository_Expecter) FindUserByEmail(ctx interface{}, email interface{}) *MockAuthRepository_FindUserByEmail_Call {
+	return &MockAuthRepository_FindUserByEmail_Call{Call: _e.mock.On("FindUserByEmail", ctx, email)}
+}
+
+func (_c *MockAuthRepository_FindUserByEmail_Call) Run(run func(ctx context.Context, email string)) *MockAuthRepository_FindUserByEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthRepository_FindUserByEmail_Call) Return(user *domain.User, err error) *MockAuthRepository_FindUserByEmail_Call {
+	_c.Call.Return(user, err)
+	return _c
+}
+
+func (_c *MockAuthRepository_FindUserByEmail_Call) RunAndReturn(run func(ctx context.Context, email string) (*domain.User, error)) *MockAuthRepository_FindUserByEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindUserByID provides a mock function for the type MockAuthRepository
+func (_mock *MockAuthRepository) FindUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindUserByID")
+	}
+
+	var r0 *domain.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*domain.User, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) *domain.User); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthRepository_FindUserByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindUserByID'
+type MockAuthRepository_FindUserByID_Call struct {
+	*mock.Call
+}
+
+// FindUserByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockAuthRepository_Expecter) FindUserByID(ctx interface{}, id interface{}) *MockAuthRepository_FindUserByID_Call {
+	return &MockAuthRepository_FindUserByID_Call{Call: _e.mock.On("FindUserByID", ctx, id)}
+}
+
+func (_c *MockAuthRepository_FindUserByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockAuthRepository_FindUserByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthRepository_FindUserByID_Call) Return(user *domain.User, err error) *MockAuthRepository_FindUserByID_Call {
+	_c.Call.Return(user, err)
+	return _c
+}
+
+func (_c *MockAuthRepository_FindUserByID_Call) RunAndReturn(run func(ctx context.Context, id uuid.UUID) (*domain.User, error)) *MockAuthRepository_FindUserByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

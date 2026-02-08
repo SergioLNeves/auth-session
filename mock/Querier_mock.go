@@ -38,16 +38,16 @@ func (_m *MockQuerier) EXPECT() *MockQuerier_Expecter {
 }
 
 // FindByEmail provides a mock function for the type MockQuerier
-func (_mock *MockQuerier) FindByEmail(ctx context.Context, email string, dest any) error {
-	ret := _mock.Called(ctx, email, dest)
+func (_mock *MockQuerier) FindByEmail(ctx context.Context, table string, email string, dest any) error {
+	ret := _mock.Called(ctx, table, email, dest)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindByEmail")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) error); ok {
-		r0 = returnFunc(ctx, email, dest)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, any) error); ok {
+		r0 = returnFunc(ctx, table, email, dest)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -61,13 +61,83 @@ type MockQuerier_FindByEmail_Call struct {
 
 // FindByEmail is a helper method to define mock.On call
 //   - ctx context.Context
+//   - table string
 //   - email string
 //   - dest any
-func (_e *MockQuerier_Expecter) FindByEmail(ctx interface{}, email interface{}, dest interface{}) *MockQuerier_FindByEmail_Call {
-	return &MockQuerier_FindByEmail_Call{Call: _e.mock.On("FindByEmail", ctx, email, dest)}
+func (_e *MockQuerier_Expecter) FindByEmail(ctx interface{}, table interface{}, email interface{}, dest interface{}) *MockQuerier_FindByEmail_Call {
+	return &MockQuerier_FindByEmail_Call{Call: _e.mock.On("FindByEmail", ctx, table, email, dest)}
 }
 
-func (_c *MockQuerier_FindByEmail_Call) Run(run func(ctx context.Context, email string, dest any)) *MockQuerier_FindByEmail_Call {
+func (_c *MockQuerier_FindByEmail_Call) Run(run func(ctx context.Context, table string, email string, dest any)) *MockQuerier_FindByEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 any
+		if args[3] != nil {
+			arg3 = args[3].(any)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockQuerier_FindByEmail_Call) Return(err error) *MockQuerier_FindByEmail_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockQuerier_FindByEmail_Call) RunAndReturn(run func(ctx context.Context, table string, email string, dest any) error) *MockQuerier_FindByEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindByID provides a mock function for the type MockQuerier
+func (_mock *MockQuerier) FindByID(ctx context.Context, table string, id any, dest any) error {
+	ret := _mock.Called(ctx, table, id, dest)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByID")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any, any) error); ok {
+		r0 = returnFunc(ctx, table, id, dest)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockQuerier_FindByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByID'
+type MockQuerier_FindByID_Call struct {
+	*mock.Call
+}
+
+// FindByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - table string
+//   - id any
+//   - dest any
+func (_e *MockQuerier_Expecter) FindByID(ctx interface{}, table interface{}, id interface{}, dest interface{}) *MockQuerier_FindByID_Call {
+	return &MockQuerier_FindByID_Call{Call: _e.mock.On("FindByID", ctx, table, id, dest)}
+}
+
+func (_c *MockQuerier_FindByID_Call) Run(run func(ctx context.Context, table string, id any, dest any)) *MockQuerier_FindByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -81,21 +151,26 @@ func (_c *MockQuerier_FindByEmail_Call) Run(run func(ctx context.Context, email 
 		if args[2] != nil {
 			arg2 = args[2].(any)
 		}
+		var arg3 any
+		if args[3] != nil {
+			arg3 = args[3].(any)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *MockQuerier_FindByEmail_Call) Return(err error) *MockQuerier_FindByEmail_Call {
+func (_c *MockQuerier_FindByID_Call) Return(err error) *MockQuerier_FindByID_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockQuerier_FindByEmail_Call) RunAndReturn(run func(ctx context.Context, email string, dest any) error) *MockQuerier_FindByEmail_Call {
+func (_c *MockQuerier_FindByID_Call) RunAndReturn(run func(ctx context.Context, table string, id any, dest any) error) *MockQuerier_FindByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

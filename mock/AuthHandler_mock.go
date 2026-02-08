@@ -137,3 +137,54 @@ func (_c *MockAuthHandler_Login_Call) RunAndReturn(run func(c echo.Context) erro
 	_c.Call.Return(run)
 	return _c
 }
+
+// Logout provides a mock function for the type MockAuthHandler
+func (_mock *MockAuthHandler) Logout(c echo.Context) error {
+	ret := _mock.Called(c)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logout")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(echo.Context) error); ok {
+		r0 = returnFunc(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuthHandler_Logout_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logout'
+type MockAuthHandler_Logout_Call struct {
+	*mock.Call
+}
+
+// Logout is a helper method to define mock.On call
+//   - c echo.Context
+func (_e *MockAuthHandler_Expecter) Logout(c interface{}) *MockAuthHandler_Logout_Call {
+	return &MockAuthHandler_Logout_Call{Call: _e.mock.On("Logout", c)}
+}
+
+func (_c *MockAuthHandler_Logout_Call) Run(run func(c echo.Context)) *MockAuthHandler_Logout_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 echo.Context
+		if args[0] != nil {
+			arg0 = args[0].(echo.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthHandler_Logout_Call) Return(err error) *MockAuthHandler_Logout_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuthHandler_Logout_Call) RunAndReturn(run func(c echo.Context) error) *MockAuthHandler_Logout_Call {
+	_c.Call.Return(run)
+	return _c
+}

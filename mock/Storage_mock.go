@@ -38,16 +38,16 @@ func (_m *MockStorage) EXPECT() *MockStorage_Expecter {
 }
 
 // FindByEmail provides a mock function for the type MockStorage
-func (_mock *MockStorage) FindByEmail(ctx context.Context, email string, dest any) error {
-	ret := _mock.Called(ctx, email, dest)
+func (_mock *MockStorage) FindByEmail(ctx context.Context, table string, email string, dest any) error {
+	ret := _mock.Called(ctx, table, email, dest)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindByEmail")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) error); ok {
-		r0 = returnFunc(ctx, email, dest)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, any) error); ok {
+		r0 = returnFunc(ctx, table, email, dest)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -61,13 +61,83 @@ type MockStorage_FindByEmail_Call struct {
 
 // FindByEmail is a helper method to define mock.On call
 //   - ctx context.Context
+//   - table string
 //   - email string
 //   - dest any
-func (_e *MockStorage_Expecter) FindByEmail(ctx interface{}, email interface{}, dest interface{}) *MockStorage_FindByEmail_Call {
-	return &MockStorage_FindByEmail_Call{Call: _e.mock.On("FindByEmail", ctx, email, dest)}
+func (_e *MockStorage_Expecter) FindByEmail(ctx interface{}, table interface{}, email interface{}, dest interface{}) *MockStorage_FindByEmail_Call {
+	return &MockStorage_FindByEmail_Call{Call: _e.mock.On("FindByEmail", ctx, table, email, dest)}
 }
 
-func (_c *MockStorage_FindByEmail_Call) Run(run func(ctx context.Context, email string, dest any)) *MockStorage_FindByEmail_Call {
+func (_c *MockStorage_FindByEmail_Call) Run(run func(ctx context.Context, table string, email string, dest any)) *MockStorage_FindByEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 any
+		if args[3] != nil {
+			arg3 = args[3].(any)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorage_FindByEmail_Call) Return(err error) *MockStorage_FindByEmail_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStorage_FindByEmail_Call) RunAndReturn(run func(ctx context.Context, table string, email string, dest any) error) *MockStorage_FindByEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindByID provides a mock function for the type MockStorage
+func (_mock *MockStorage) FindByID(ctx context.Context, table string, id any, dest any) error {
+	ret := _mock.Called(ctx, table, id, dest)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByID")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any, any) error); ok {
+		r0 = returnFunc(ctx, table, id, dest)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStorage_FindByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByID'
+type MockStorage_FindByID_Call struct {
+	*mock.Call
+}
+
+// FindByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - table string
+//   - id any
+//   - dest any
+func (_e *MockStorage_Expecter) FindByID(ctx interface{}, table interface{}, id interface{}, dest interface{}) *MockStorage_FindByID_Call {
+	return &MockStorage_FindByID_Call{Call: _e.mock.On("FindByID", ctx, table, id, dest)}
+}
+
+func (_c *MockStorage_FindByID_Call) Run(run func(ctx context.Context, table string, id any, dest any)) *MockStorage_FindByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -81,21 +151,26 @@ func (_c *MockStorage_FindByEmail_Call) Run(run func(ctx context.Context, email 
 		if args[2] != nil {
 			arg2 = args[2].(any)
 		}
+		var arg3 any
+		if args[3] != nil {
+			arg3 = args[3].(any)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *MockStorage_FindByEmail_Call) Return(err error) *MockStorage_FindByEmail_Call {
+func (_c *MockStorage_FindByID_Call) Return(err error) *MockStorage_FindByID_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockStorage_FindByEmail_Call) RunAndReturn(run func(ctx context.Context, email string, dest any) error) *MockStorage_FindByEmail_Call {
+func (_c *MockStorage_FindByID_Call) RunAndReturn(run func(ctx context.Context, table string, id any, dest any) error) *MockStorage_FindByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -147,16 +222,16 @@ func (_c *MockStorage_GetDB_Call) RunAndReturn(run func() any) *MockStorage_GetD
 }
 
 // Insert provides a mock function for the type MockStorage
-func (_mock *MockStorage) Insert(ctx context.Context, data any) error {
-	ret := _mock.Called(ctx, data)
+func (_mock *MockStorage) Insert(ctx context.Context, table string, data any) error {
+	ret := _mock.Called(ctx, table, data)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Insert")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, any) error); ok {
-		r0 = returnFunc(ctx, data)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) error); ok {
+		r0 = returnFunc(ctx, table, data)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -170,24 +245,30 @@ type MockStorage_Insert_Call struct {
 
 // Insert is a helper method to define mock.On call
 //   - ctx context.Context
+//   - table string
 //   - data any
-func (_e *MockStorage_Expecter) Insert(ctx interface{}, data interface{}) *MockStorage_Insert_Call {
-	return &MockStorage_Insert_Call{Call: _e.mock.On("Insert", ctx, data)}
+func (_e *MockStorage_Expecter) Insert(ctx interface{}, table interface{}, data interface{}) *MockStorage_Insert_Call {
+	return &MockStorage_Insert_Call{Call: _e.mock.On("Insert", ctx, table, data)}
 }
 
-func (_c *MockStorage_Insert_Call) Run(run func(ctx context.Context, data any)) *MockStorage_Insert_Call {
+func (_c *MockStorage_Insert_Call) Run(run func(ctx context.Context, table string, data any)) *MockStorage_Insert_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 any
+		var arg1 string
 		if args[1] != nil {
-			arg1 = args[1].(any)
+			arg1 = args[1].(string)
+		}
+		var arg2 any
+		if args[2] != nil {
+			arg2 = args[2].(any)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -198,7 +279,7 @@ func (_c *MockStorage_Insert_Call) Return(err error) *MockStorage_Insert_Call {
 	return _c
 }
 
-func (_c *MockStorage_Insert_Call) RunAndReturn(run func(ctx context.Context, data any) error) *MockStorage_Insert_Call {
+func (_c *MockStorage_Insert_Call) RunAndReturn(run func(ctx context.Context, table string, data any) error) *MockStorage_Insert_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -250,6 +331,69 @@ func (_c *MockStorage_Ping_Call) Return(err error) *MockStorage_Ping_Call {
 }
 
 func (_c *MockStorage_Ping_Call) RunAndReturn(run func(ctx context.Context) error) *MockStorage_Ping_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Update provides a mock function for the type MockStorage
+func (_mock *MockStorage) Update(ctx context.Context, table string, data any) error {
+	ret := _mock.Called(ctx, table, data)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Update")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) error); ok {
+		r0 = returnFunc(ctx, table, data)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStorage_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
+type MockStorage_Update_Call struct {
+	*mock.Call
+}
+
+// Update is a helper method to define mock.On call
+//   - ctx context.Context
+//   - table string
+//   - data any
+func (_e *MockStorage_Expecter) Update(ctx interface{}, table interface{}, data interface{}) *MockStorage_Update_Call {
+	return &MockStorage_Update_Call{Call: _e.mock.On("Update", ctx, table, data)}
+}
+
+func (_c *MockStorage_Update_Call) Run(run func(ctx context.Context, table string, data any)) *MockStorage_Update_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 any
+		if args[2] != nil {
+			arg2 = args[2].(any)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorage_Update_Call) Return(err error) *MockStorage_Update_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStorage_Update_Call) RunAndReturn(run func(ctx context.Context, table string, data any) error) *MockStorage_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

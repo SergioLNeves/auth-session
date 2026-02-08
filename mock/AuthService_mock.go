@@ -39,23 +39,23 @@ func (_m *MockAuthService) EXPECT() *MockAuthService_Expecter {
 }
 
 // CreateAccount provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) CreateAccount(ctx context.Context, req domain.CreateAccountRequest) (*domain.User, error) {
+func (_mock *MockAuthService) CreateAccount(ctx context.Context, req domain.CreateAccountRequest) (*domain.AuthResponse, error) {
 	ret := _mock.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateAccount")
 	}
 
-	var r0 *domain.User
+	var r0 *domain.AuthResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.CreateAccountRequest) (*domain.User, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.CreateAccountRequest) (*domain.AuthResponse, error)); ok {
 		return returnFunc(ctx, req)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.CreateAccountRequest) *domain.User); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.CreateAccountRequest) *domain.AuthResponse); ok {
 		r0 = returnFunc(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*domain.User)
+			r0 = ret.Get(0).(*domain.AuthResponse)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.CreateAccountRequest) error); ok {
@@ -96,12 +96,69 @@ func (_c *MockAuthService_CreateAccount_Call) Run(run func(ctx context.Context, 
 	return _c
 }
 
-func (_c *MockAuthService_CreateAccount_Call) Return(user *domain.User, err error) *MockAuthService_CreateAccount_Call {
-	_c.Call.Return(user, err)
+func (_c *MockAuthService_CreateAccount_Call) Return(authResponse *domain.AuthResponse, err error) *MockAuthService_CreateAccount_Call {
+	_c.Call.Return(authResponse, err)
 	return _c
 }
 
-func (_c *MockAuthService_CreateAccount_Call) RunAndReturn(run func(ctx context.Context, req domain.CreateAccountRequest) (*domain.User, error)) *MockAuthService_CreateAccount_Call {
+func (_c *MockAuthService_CreateAccount_Call) RunAndReturn(run func(ctx context.Context, req domain.CreateAccountRequest) (*domain.AuthResponse, error)) *MockAuthService_CreateAccount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Logout provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) Logout(ctx context.Context, sessionID string) error {
+	ret := _mock.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logout")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, sessionID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuthService_Logout_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logout'
+type MockAuthService_Logout_Call struct {
+	*mock.Call
+}
+
+// Logout is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID string
+func (_e *MockAuthService_Expecter) Logout(ctx interface{}, sessionID interface{}) *MockAuthService_Logout_Call {
+	return &MockAuthService_Logout_Call{Call: _e.mock.On("Logout", ctx, sessionID)}
+}
+
+func (_c *MockAuthService_Logout_Call) Run(run func(ctx context.Context, sessionID string)) *MockAuthService_Logout_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_Logout_Call) Return(err error) *MockAuthService_Logout_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuthService_Logout_Call) RunAndReturn(run func(ctx context.Context, sessionID string) error) *MockAuthService_Logout_Call {
 	_c.Call.Return(run)
 	return _c
 }

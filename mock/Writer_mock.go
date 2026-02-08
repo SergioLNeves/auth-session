@@ -38,16 +38,16 @@ func (_m *MockWriter) EXPECT() *MockWriter_Expecter {
 }
 
 // Insert provides a mock function for the type MockWriter
-func (_mock *MockWriter) Insert(ctx context.Context, data any) error {
-	ret := _mock.Called(ctx, data)
+func (_mock *MockWriter) Insert(ctx context.Context, table string, data any) error {
+	ret := _mock.Called(ctx, table, data)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Insert")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, any) error); ok {
-		r0 = returnFunc(ctx, data)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) error); ok {
+		r0 = returnFunc(ctx, table, data)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -61,24 +61,30 @@ type MockWriter_Insert_Call struct {
 
 // Insert is a helper method to define mock.On call
 //   - ctx context.Context
+//   - table string
 //   - data any
-func (_e *MockWriter_Expecter) Insert(ctx interface{}, data interface{}) *MockWriter_Insert_Call {
-	return &MockWriter_Insert_Call{Call: _e.mock.On("Insert", ctx, data)}
+func (_e *MockWriter_Expecter) Insert(ctx interface{}, table interface{}, data interface{}) *MockWriter_Insert_Call {
+	return &MockWriter_Insert_Call{Call: _e.mock.On("Insert", ctx, table, data)}
 }
 
-func (_c *MockWriter_Insert_Call) Run(run func(ctx context.Context, data any)) *MockWriter_Insert_Call {
+func (_c *MockWriter_Insert_Call) Run(run func(ctx context.Context, table string, data any)) *MockWriter_Insert_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 any
+		var arg1 string
 		if args[1] != nil {
-			arg1 = args[1].(any)
+			arg1 = args[1].(string)
+		}
+		var arg2 any
+		if args[2] != nil {
+			arg2 = args[2].(any)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -89,7 +95,70 @@ func (_c *MockWriter_Insert_Call) Return(err error) *MockWriter_Insert_Call {
 	return _c
 }
 
-func (_c *MockWriter_Insert_Call) RunAndReturn(run func(ctx context.Context, data any) error) *MockWriter_Insert_Call {
+func (_c *MockWriter_Insert_Call) RunAndReturn(run func(ctx context.Context, table string, data any) error) *MockWriter_Insert_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Update provides a mock function for the type MockWriter
+func (_mock *MockWriter) Update(ctx context.Context, table string, data any) error {
+	ret := _mock.Called(ctx, table, data)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Update")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) error); ok {
+		r0 = returnFunc(ctx, table, data)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWriter_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
+type MockWriter_Update_Call struct {
+	*mock.Call
+}
+
+// Update is a helper method to define mock.On call
+//   - ctx context.Context
+//   - table string
+//   - data any
+func (_e *MockWriter_Expecter) Update(ctx interface{}, table interface{}, data interface{}) *MockWriter_Update_Call {
+	return &MockWriter_Update_Call{Call: _e.mock.On("Update", ctx, table, data)}
+}
+
+func (_c *MockWriter_Update_Call) Run(run func(ctx context.Context, table string, data any)) *MockWriter_Update_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 any
+		if args[2] != nil {
+			arg2 = args[2].(any)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWriter_Update_Call) Return(err error) *MockWriter_Update_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWriter_Update_Call) RunAndReturn(run func(ctx context.Context, table string, data any) error) *MockWriter_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }
