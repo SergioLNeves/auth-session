@@ -9,6 +9,7 @@ import (
 	"github.com/SergioLNeves/auth-session/internal/pkg/logging"
 	validator "github.com/SergioLNeves/auth-session/internal/pkg/validator"
 	"github.com/SergioLNeves/auth-session/internal/repository"
+	"github.com/SergioLNeves/auth-session/internal/security"
 	"github.com/SergioLNeves/auth-session/internal/service"
 	"github.com/SergioLNeves/auth-session/internal/storage/sqlite"
 	"github.com/labstack/echo/v4"
@@ -81,6 +82,8 @@ func initDependencies(logger *zap.Logger) {
 	do.Provide(injector, sqlite.NewSQLite)
 
 	do.Provide(injector, repository.NewAuthRepository)
+
+	do.Provide(injector, security.NewJWTProvider)
 
 	do.Provide(injector, service.NewHealthCheckService)
 	do.Provide(injector, service.NewAuthService)

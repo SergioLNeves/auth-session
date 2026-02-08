@@ -38,7 +38,7 @@ type AuthHandler interface {
 }
 
 type AuthService interface {
-	CreateAccount(ctx context.Context, req CreateAccountRequest) (*User, error)
+	CreateAccount(ctx context.Context, req CreateAccountRequest) (*AuthResponse, error)
 }
 
 type AuthRepository interface {

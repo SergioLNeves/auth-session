@@ -55,7 +55,7 @@ func (e AuthHandlerImpl) CreateAccount(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, problemDetails)
 	}
 
-	_, err := e.AuthService.CreateAccount(c.Request().Context(), request)
+	response, err := e.AuthService.CreateAccount(c.Request().Context(), request)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailAlreadyExists) {
 			logger.Info("email already exists", zap.String("email", request.Email))
@@ -78,7 +78,7 @@ func (e AuthHandlerImpl) CreateAccount(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, problemDetails)
 	}
 
-	return c.NoContent(http.StatusCreated)
+	return c.JSON(http.StatusCreated, response)
 }
 
 func (e AuthHandlerImpl) Login(c echo.Context) error {
