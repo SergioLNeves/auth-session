@@ -103,6 +103,7 @@ func initDependencies(logger *zap.Logger) {
 	do.Provide(injector, repository.NewSessionRepository)
 
 	do.Provide(injector, security.NewJWTProvider)
+	do.Provide(injector, security.NewBcryptHasher)
 
 	do.Provide(injector, service.NewHealthCheckService)
 	do.Provide(injector, service.NewAuthService)

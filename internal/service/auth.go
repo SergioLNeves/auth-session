@@ -10,23 +10,25 @@ import (
 
 	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/SergioLNeves/auth-session/internal/pkg/logging"
-	"github.com/SergioLNeves/auth-session/internal/security"
 )
 
 type AuthServiceImpl struct {
 	authRepository    domain.AuthRepository
 	sessionRepository domain.SessionRepository
 	tokenProvider     domain.TokenProvider
+	passwordHasher    domain.PasswordHasher
 }
 
 func NewAuthService(i *do.Injector) (domain.AuthService, error) {
 	authRepository := do.MustInvoke[domain.AuthRepository](i)
 	sessionRepository := do.MustInvoke[domain.SessionRepository](i)
 	tokenProvider := do.MustInvoke[domain.TokenProvider](i)
+	passwordHasher := do.MustInvoke[domain.PasswordHasher](i)
 	return &AuthServiceImpl{
 		authRepository:    authRepository,
 		sessionRepository: sessionRepository,
 		tokenProvider:     tokenProvider,
+		passwordHasher:    passwordHasher,
 	}, nil
 }
 
@@ -39,7 +41,7 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 		return nil, domain.ErrEmailAlreadyExists
 	}
 
-	hashedPassword, err := security.HashPassword(req.Password)
+	hashedPassword, err := s.passwordHasher.Hash(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
@@ -47,7 +49,7 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 	user := &domain.User{
 		ID:       uuid.New(),
 		Email:    req.Email,
-		Password: *hashedPassword,
+		Password: hashedPassword,
 		Active:   true,
 	}
 
@@ -89,7 +91,7 @@ func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest) (*
 		return nil, domain.ErrInvalidCredentials
 	}
 
-	if checkErr := security.CheckPassword(req.Password, user.Password); checkErr != nil {
+	if checkErr := s.passwordHasher.Check(req.Password, user.Password); checkErr != nil {
 		return nil, domain.ErrInvalidCredentials
 	}
 
