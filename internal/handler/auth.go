@@ -91,14 +91,8 @@ func (e AuthHandlerImpl) Login(c echo.Context) error {
 func (e AuthHandlerImpl) Logout(c echo.Context) error {
 	logger := logging.With(zap.String("handler", "AuthHandler.Logout"))
 
-	cookie, err := c.Cookie("access_token")
-	if err != nil || cookie.Value == "" {
-		logger.Warn("logout attempt without access token cookie")
-		clearAuthCookies(c)
-		return c.NoContent(http.StatusOK)
-	}
-
-	if err := e.AuthService.Logout(c.Request().Context(), cookie.Value); err != nil {
+	sessionID := c.Get("session_id").(string)
+	if err := e.AuthService.Logout(c.Request().Context(), sessionID); err != nil {
 		logger.Error("failed to deactivate session", zap.Error(err))
 	}
 

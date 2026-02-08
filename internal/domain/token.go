@@ -15,4 +15,5 @@ type TokenProvider interface {
 	GenerateAccessToken(userID string, email string, sessionID string) (string, error)
 	GenerateRefreshToken(userID string, sessionID string) (string, error)
 	ParseAccessToken(tokenString string) (*TokenClaims, error)
+	ParseRefreshToken(tokenString string) (*TokenClaims, error)
 }

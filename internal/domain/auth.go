@@ -41,10 +41,11 @@ type AuthHandler interface {
 
 type AuthService interface {
 	CreateAccount(ctx context.Context, req CreateAccountRequest) (*AuthResponse, error)
-	Logout(ctx context.Context, accessToken string) error
+	Logout(ctx context.Context, sessionID string) error
 }
 
 type AuthRepository interface {
 	CreateUser(ctx context.Context, user *User) error
 	FindUserByEmail(ctx context.Context, email string) (*User, error)
+	FindUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 }

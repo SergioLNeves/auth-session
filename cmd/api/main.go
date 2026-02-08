@@ -6,6 +6,7 @@ import (
 	"github.com/SergioLNeves/auth-session/internal/config"
 	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/SergioLNeves/auth-session/internal/handler"
+	authmiddleware "github.com/SergioLNeves/auth-session/internal/middleware"
 	"github.com/SergioLNeves/auth-session/internal/pkg/logging"
 	validator "github.com/SergioLNeves/auth-session/internal/pkg/validator"
 	"github.com/SergioLNeves/auth-session/internal/repository"
@@ -77,13 +78,18 @@ func configureAuthRoute(e *echo.Echo) {
 		logger.Fatal("invoke auth handler", zap.Error(err))
 	}
 
+	tokenProvider := do.MustInvoke[domain.TokenProvider](injector)
+	sessionRepo := do.MustInvoke[domain.SessionRepository](injector)
+	authRepo := do.MustInvoke[domain.AuthRepository](injector)
+	sessionAuth := authmiddleware.SessionAuth(tokenProvider, sessionRepo, authRepo)
+
 	v1 := e.Group("/v1")
 	userGroup := v1.Group("/user")
 	userGroup.POST("/create-account", authHandler.CreateAccount)
 
 	authGroup := v1.Group("/auth")
 	authGroup.POST("/login", authHandler.Login)
-	authGroup.POST("/logout", authHandler.Logout)
+	authGroup.POST("/logout", authHandler.Logout, sessionAuth)
 }
 
 func initDependencies(logger *zap.Logger) {

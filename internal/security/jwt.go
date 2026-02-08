@@ -89,6 +89,15 @@ func (j *JWTProvider) GenerateRefreshToken(userID string, sessionID string) (str
 }
 
 func (j *JWTProvider) ParseAccessToken(tokenString string) (*domain.TokenClaims, error) {
+	// WithoutClaimsValidation allows parsing expired tokens (needed for refresh flow)
+	return j.parseToken(tokenString, jwt.WithoutClaimsValidation())
+}
+
+func (j *JWTProvider) ParseRefreshToken(tokenString string) (*domain.TokenClaims, error) {
+	return j.parseToken(tokenString)
+}
+
+func (j *JWTProvider) parseToken(tokenString string, opts ...jwt.ParserOption) (*domain.TokenClaims, error) {
 	keyFunc := func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -96,8 +105,7 @@ func (j *JWTProvider) ParseAccessToken(tokenString string) (*domain.TokenClaims,
 		return j.publicKey, nil
 	}
 
-	// WithoutClaimsValidation allows parsing expired tokens (needed for logout)
-	token, err := jwt.Parse(tokenString, keyFunc, jwt.WithoutClaimsValidation())
+	token, err := jwt.Parse(tokenString, keyFunc, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
@@ -107,9 +115,14 @@ func (j *JWTProvider) ParseAccessToken(tokenString string) (*domain.TokenClaims,
 		return nil, fmt.Errorf("invalid token claims")
 	}
 
-	return &domain.TokenClaims{
+	tokenClaims := &domain.TokenClaims{
 		UserID:    claims["sub"].(string),
-		Email:     claims["email"].(string),
 		SessionID: claims["session_id"].(string),
-	}, nil
+	}
+
+	if email, ok := claims["email"].(string); ok {
+		tokenClaims.Email = email
+	}
+
+	return tokenClaims, nil
 }

@@ -79,18 +79,13 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 	}, nil
 }
 
-func (s *AuthServiceImpl) Logout(ctx context.Context, accessToken string) error {
-	claims, err := s.tokenProvider.ParseAccessToken(accessToken)
+func (s *AuthServiceImpl) Logout(ctx context.Context, sessionID string) error {
+	id, err := uuid.Parse(sessionID)
 	if err != nil {
-		return fmt.Errorf("failed to parse access token: %w", err)
+		return fmt.Errorf("invalid session ID: %w", err)
 	}
 
-	sessionID, err := uuid.Parse(claims.SessionID)
-	if err != nil {
-		return fmt.Errorf("invalid session ID in token: %w", err)
-	}
-
-	if err := s.sessionRepository.DeactivateSession(ctx, sessionID); err != nil {
+	if err := s.sessionRepository.DeactivateSession(ctx, id); err != nil {
 		return fmt.Errorf("failed to deactivate session: %w", err)
 	}
 
