@@ -1,23 +1,48 @@
 # Visão Geral do Projeto
 
-Este documento fornece uma descrição do propósito, tecnologia e fases de desenvolvimento do projeto de autenticação.
+Este documento fornece uma descrição do propósito, tecnologia e estado atual do projeto de autenticação.
 
 ## Propósito
 
-O objetivo principal deste projeto é criar um sistema de autenticação robusto e seguro utilizando Go para o backend. O sistema evoluirá para implementar autenticação baseada em JSON Web Tokens (JWT), fornecendo uma solução completa para gerenciamento de sessões e acesso seguro a APIs.
+O objetivo deste projeto é criar um sistema de autenticação seguro utilizando Go para o backend. O sistema implementa autenticação baseada em JWT (RS256) com gerenciamento de sessões persistidas em banco de dados, fornecendo uma solução completa para criação de conta, login, logout com invalidação server-side e acesso seguro a APIs.
+
+Este repositório tem fins de estudo e documentação.
 
 ## Tecnologia
 
-- **Backend**: API desenvolvida em **Go (Golang)**.
-- **Banco de Dados**: **SQLite** é utilizado para a persistência de dados, como tokens de sessão e informações de usuário. A escolha pelo SQLite simplifica a configuração e o deploy inicial.
-- **Frontend**: Páginas simples em **HTML, CSS e JavaScript** (`assets/`) são fornecidas para interação com a API (e.g., telas de login).
+- **Backend**: API desenvolvida em **Go (Golang)** com o framework **Echo**.
+- **Banco de Dados**: **SQLite** com **GORM** para persistência de usuários e sessões.
+- **Autenticação**: **JWT com RS256** (assinatura assimétrica) para access tokens e refresh tokens.
+- **Segurança**: Senhas hasheadas com **bcrypt** (cost 12), cookies com **HttpOnly**, **SameSite=Strict** e **Secure** em produção.
+- **Injeção de Dependências**: **samber/do** para registro e resolução de dependências.
+- **Frontend**: Páginas simples em **HTML, CSS e JavaScript** (`assets/`) para interação com a API (criação de conta, login, logout).
 
-## Fases de Desenvolvimento
+## Estado Atual
 
-O projeto será desenvolvido em duas fases principais:
+### Implementado
 
-### Fase 1: Autenticação baseada em Sessão
-Nesta fase inicial, o foco é criar um sistema de gerenciamento de sessão tradicional. Quando um usuário faz login com sucesso, uma sessão é criada e seu identificador é armazenado no banco de dados. Um cookie de sessão é enviado ao cliente para manter o estado de autenticação entre as requisições.
+- **Criação de conta** (`POST /v1/user/create-account`): validação de campos, verificação de email duplicado, hash de senha com bcrypt, criação de usuário e sessão no banco, geração de access token e refresh token (RS256), cookies setados na resposta.
+- **Logout** (`POST /v1/auth/logout`): leitura do cookie access_token, extração do `session_id` dos claims JWT, desativação da sessão no banco (`active=false`), limpeza de cookies. Idempotente e funciona mesmo com token expirado.
+- **Sessões persistidas**: tabela `session_tables` no banco com estado ativo/inativo, vinculada aos tokens via claim `session_id`.
+- **Frontend**: páginas de criação de conta, login, recuperação de senha e página de sucesso com email do usuário e botão de logout. Verificação de autenticação via JavaScript em todas as páginas.
+- **Tratamento de erros**: padrão ProblemDetails (RFC 7807) com suporte a erros de validação por campo.
+- **Health check** (`GET /health`).
 
-### Fase 2: Autenticação com JWT
-A segunda fase expandirá o sistema para utilizar **JSON Web Tokens (JWT)**. Após o login, em vez de um simples token de sessão, a API gerará um JWT assinado. Este token conterá as informações (claims) do usuário e será enviado ao cliente. Para requisições subsequentes, o cliente enviará o JWT no cabeçalho `Authorization`, permitindo que a API verifique a autenticidade e autorize o acesso sem a necessidade de consultar o banco de dados a cada requisição, tornando o sistema mais escalável e stateless.
+### Pendente
+
+- **Login** (`POST /v1/auth/login`): handler parcialmente implementado (stub).
+- **Middleware de autenticação**: validação de sessão ativa nas rotas protegidas.
+- **Refresh token**: endpoint para renovação do access token usando o refresh token.
+- **Recuperação de senha**: lógica de envio de email e reset.
+
+## Arquitetura
+
+O projeto segue uma arquitetura em camadas:
+
+```
+Handler (HTTP) → Service (negócio) → Repository (dados) → Storage (SQLite)
+```
+
+Interfaces são definidas no pacote `domain` e implementadas nas camadas correspondentes. A injeção de dependências é configurada em `cmd/api/main.go`.
+
+Para mais detalhes, consulte o [README.md](../README.md).

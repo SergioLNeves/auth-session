@@ -11,6 +11,7 @@ import (
 
 var (
 	ErrEmailAlreadyExists = fmt.Errorf("Error Email Already Exists")
+	ErrInvalidCredentials = fmt.Errorf("Error Invalid Credentials")
 )
 
 type CreateAccountRequest struct {
@@ -35,10 +36,12 @@ type LoginRequest struct {
 type AuthHandler interface {
 	CreateAccount(c echo.Context) error
 	Login(c echo.Context) error
+	Logout(c echo.Context) error
 }
 
 type AuthService interface {
 	CreateAccount(ctx context.Context, req CreateAccountRequest) (*AuthResponse, error)
+	Logout(ctx context.Context, accessToken string) error
 }
 
 type AuthRepository interface {

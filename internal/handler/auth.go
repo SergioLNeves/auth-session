@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/SergioLNeves/auth-session/internal/config"
 	"github.com/SergioLNeves/auth-session/internal/domain"
 	errorpkg "github.com/SergioLNeves/auth-session/internal/pkg/error"
 	"github.com/SergioLNeves/auth-session/internal/pkg/logging"
@@ -78,9 +79,72 @@ func (e AuthHandlerImpl) CreateAccount(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, problemDetails)
 	}
 
+	setAuthCookies(c, response)
+
 	return c.JSON(http.StatusCreated, response)
 }
 
 func (e AuthHandlerImpl) Login(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
+}
+
+func (e AuthHandlerImpl) Logout(c echo.Context) error {
+	logger := logging.With(zap.String("handler", "AuthHandler.Logout"))
+
+	cookie, err := c.Cookie("access_token")
+	if err != nil || cookie.Value == "" {
+		logger.Warn("logout attempt without access token cookie")
+		clearAuthCookies(c)
+		return c.NoContent(http.StatusOK)
+	}
+
+	if err := e.AuthService.Logout(c.Request().Context(), cookie.Value); err != nil {
+		logger.Error("failed to deactivate session", zap.Error(err))
+	}
+
+	clearAuthCookies(c)
+	return c.NoContent(http.StatusOK)
+}
+
+func clearAuthCookies(c echo.Context) {
+	c.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: false,
+	})
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+}
+
+func setAuthCookies(c echo.Context, response *domain.AuthResponse) {
+	isProduction := config.Env.Env == "production"
+
+	// MaxAge expects seconds; env values are in minutes, so multiply by 60
+	// access_token is readable by JS to extract user claims (email)
+	c.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    response.AccessToken,
+		Path:     "/",
+		MaxAge:   config.Env.Token.AccessTokenExpiry * 60,
+		HttpOnly: false,
+		Secure:   isProduction,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    response.RefreshToken,
+		Path:     "/",
+		MaxAge:   config.Env.Token.RefreshTokenExpiry * 60,
+		HttpOnly: true,
+		Secure:   isProduction,
+		SameSite: http.SameSiteStrictMode,
+	})
 }

@@ -44,11 +44,22 @@ func main() {
 		}
 	}()
 
+	configureStaticAssets(e)
 	configureHealthcheckRoute(e)
 	configureAuthRoute(e)
 
 	api := config.NewAPI(e, config.Env.Port, 10*time.Second)
 	api.Start()
+}
+
+func configureStaticAssets(e *echo.Echo) {
+	e.Static("/css", "assets/css")
+	e.Static("/js", "assets/js")
+
+	e.File("/", "assets/html/success.html")
+	e.File("/create-account", "assets/html/create-account.html")
+	e.File("/login", "assets/html/login.html")
+	e.File("/password", "assets/html/password.html")
 }
 
 func configureHealthcheckRoute(e *echo.Echo) {
@@ -72,6 +83,7 @@ func configureAuthRoute(e *echo.Echo) {
 
 	authGroup := v1.Group("/auth")
 	authGroup.POST("/login", authHandler.Login)
+	authGroup.POST("/logout", authHandler.Logout)
 }
 
 func initDependencies(logger *zap.Logger) {
@@ -82,6 +94,7 @@ func initDependencies(logger *zap.Logger) {
 	do.Provide(injector, sqlite.NewSQLite)
 
 	do.Provide(injector, repository.NewAuthRepository)
+	do.Provide(injector, repository.NewSessionRepository)
 
 	do.Provide(injector, security.NewJWTProvider)
 

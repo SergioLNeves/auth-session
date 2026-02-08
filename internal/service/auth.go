@@ -12,16 +12,19 @@ import (
 )
 
 type AuthServiceImpl struct {
-	authRepository domain.AuthRepository
-	tokenProvider  domain.TokenProvider
+	authRepository    domain.AuthRepository
+	sessionRepository domain.SessionRepository
+	tokenProvider     domain.TokenProvider
 }
 
 func NewAuthService(i *do.Injector) (domain.AuthService, error) {
 	authRepository := do.MustInvoke[domain.AuthRepository](i)
+	sessionRepository := do.MustInvoke[domain.SessionRepository](i)
 	tokenProvider := do.MustInvoke[domain.TokenProvider](i)
 	return &AuthServiceImpl{
-		authRepository: authRepository,
-		tokenProvider:  tokenProvider,
+		authRepository:    authRepository,
+		sessionRepository: sessionRepository,
+		tokenProvider:     tokenProvider,
 	}, nil
 }
 
@@ -50,12 +53,22 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email)
+	session := &domain.Session{
+		ID:     uuid.New(),
+		UserID: user.ID,
+		Active: true,
+	}
+
+	if err := s.sessionRepository.CreateSession(ctx, session); err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, session.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	refreshToken, err := s.tokenProvider.GenerateRefreshToken(user.ID.String())
+	refreshToken, err := s.tokenProvider.GenerateRefreshToken(user.ID.String(), session.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -64,4 +77,22 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
+}
+
+func (s *AuthServiceImpl) Logout(ctx context.Context, accessToken string) error {
+	claims, err := s.tokenProvider.ParseAccessToken(accessToken)
+	if err != nil {
+		return fmt.Errorf("failed to parse access token: %w", err)
+	}
+
+	sessionID, err := uuid.Parse(claims.SessionID)
+	if err != nil {
+		return fmt.Errorf("invalid session ID in token: %w", err)
+	}
+
+	if err := s.sessionRepository.DeactivateSession(ctx, sessionID); err != nil {
+		return fmt.Errorf("failed to deactivate session: %w", err)
+	}
+
+	return nil
 }

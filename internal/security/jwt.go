@@ -15,35 +15,48 @@ import (
 
 type JWTProvider struct {
 	privateKey         *rsa.PrivateKey
+	publicKey          *rsa.PublicKey
 	accessTokenExpiry  time.Duration
 	refreshTokenExpiry time.Duration
 }
 
 func NewJWTProvider(_ *do.Injector) (domain.TokenProvider, error) {
-	keyData, err := os.ReadFile(config.Env.Keys.PrivateKeyPath)
+	privData, err := os.ReadFile(config.Env.Keys.PrivateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key: %w", err)
 	}
 
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(keyData)
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
 
+	pubData, err := os.ReadFile(config.Env.Keys.PublicKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read public key: %w", err)
+	}
+
+	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(pubData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
+	}
+
 	return &JWTProvider{
 		privateKey:         privateKey,
+		publicKey:          publicKey,
 		accessTokenExpiry:  time.Duration(config.Env.Token.AccessTokenExpiry) * time.Minute,
 		refreshTokenExpiry: time.Duration(config.Env.Token.RefreshTokenExpiry) * time.Minute,
 	}, nil
 }
 
-func (j *JWTProvider) GenerateAccessToken(userID string, email string) (string, error) {
+func (j *JWTProvider) GenerateAccessToken(userID string, email string, sessionID string) (string, error) {
 	now := time.Now()
 	claims := jwt.MapClaims{
-		"sub":   userID,
-		"email": email,
-		"iat":   now.Unix(),
-		"exp":   now.Add(j.accessTokenExpiry).Unix(),
+		"sub":        userID,
+		"email":      email,
+		"session_id": sessionID,
+		"iat":        now.Unix(),
+		"exp":        now.Add(j.accessTokenExpiry).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
@@ -56,12 +69,13 @@ func (j *JWTProvider) GenerateAccessToken(userID string, email string) (string, 
 	return signed, nil
 }
 
-func (j *JWTProvider) GenerateRefreshToken(userID string) (string, error) {
+func (j *JWTProvider) GenerateRefreshToken(userID string, sessionID string) (string, error) {
 	now := time.Now()
 	claims := jwt.MapClaims{
-		"sub": userID,
-		"iat": now.Unix(),
-		"exp": now.Add(j.refreshTokenExpiry).Unix(),
+		"sub":        userID,
+		"session_id": sessionID,
+		"iat":        now.Unix(),
+		"exp":        now.Add(j.refreshTokenExpiry).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
@@ -72,4 +86,30 @@ func (j *JWTProvider) GenerateRefreshToken(userID string) (string, error) {
 	}
 
 	return signed, nil
+}
+
+func (j *JWTProvider) ParseAccessToken(tokenString string) (*domain.TokenClaims, error) {
+	keyFunc := func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return j.publicKey, nil
+	}
+
+	// WithoutClaimsValidation allows parsing expired tokens (needed for logout)
+	token, err := jwt.Parse(tokenString, keyFunc, jwt.WithoutClaimsValidation())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+
+	return &domain.TokenClaims{
+		UserID:    claims["sub"].(string),
+		Email:     claims["email"].(string),
+		SessionID: claims["session_id"].(string),
+	}, nil
 }

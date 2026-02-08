@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Criar Conta - Auth Session</title>
+        <link rel="stylesheet" href="/css/create-account.css" />
+    </head>
+    <body>
+        <div class="create-account-container">
+            <div class="create-account-header">
+                <h1>Criar Conta</h1>
+                <p>Preencha os dados para se registrar</p>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <form id="createAccountForm">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="seu@email.com"
+                        required
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Mínimo 8 caracteres"
+                        minlength="8"
+                        required
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar Senha</label>
+                    <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        placeholder="Repita a senha"
+                        minlength="8"
+                        required
+                    />
+                </div>
+
+                <button type="submit" class="btn-submit">Criar Conta</button>
+
+                <div class="form-footer">
+                    <a href="/login">Já tem uma conta? Faça login</a>
+                </div>
+            </form>
+        </div>
+        <script src="/js/auth.js"></script>
+        <script src="/js/create-account.js"></script>
+        <script>requireGuest();</script>
+    </body>
+</html>

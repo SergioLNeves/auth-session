@@ -122,6 +122,28 @@ func (s *SQLiteStorage) Insert(ctx context.Context, table string, data any) erro
 	return nil
 }
 
+func (s *SQLiteStorage) Update(ctx context.Context, table string, data any) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	result := s.db.WithContext(ctx).Table(table).Save(data)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update data: %w", result.Error)
+	}
+	return nil
+}
+
+func (s *SQLiteStorage) FindByID(ctx context.Context, table string, id any, dest any) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	result := s.db.WithContext(ctx).Table(table).Where("id = ?", id).First(dest)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
+
 func (s *SQLiteStorage) GetDB() any {
 	return s.db
 }

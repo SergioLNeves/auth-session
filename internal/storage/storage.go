@@ -11,6 +11,7 @@ type Storage interface {
 
 type Writer interface {
 	Insert(ctx context.Context, table string, data any) error
+	Update(ctx context.Context, table string, data any) error
 }
 
 type Reader interface {
@@ -19,4 +20,5 @@ type Reader interface {
 
 type Querier interface {
 	FindByEmail(ctx context.Context, table, email string, dest any) error
+	FindByID(ctx context.Context, table string, id any, dest any) error
 }
