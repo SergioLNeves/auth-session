@@ -12,18 +12,23 @@ import (
 var (
 	ErrEmailAlreadyExists = fmt.Errorf("Error Email Already Exists")
 	ErrInvalidCredentials = fmt.Errorf("Error Invalid Credentials")
+	ErrUserNotFound       = fmt.Errorf("Error User Not Found")
 )
 
 type CreateAccountRequest struct {
+	Name     string `form:"name" validate:"required,name"`
+	Avatar   string
 	Email    string `form:"email" validate:"required,email"`
 	Password string `form:"password" validate:"required,min=8"`
 }
 
 type User struct {
 	ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Email     string    `gorm:"type:varchar(100);uniqueIndex;not null"`
-	Password  string    `gorm:"not null"`
-	Active    bool      `gorm:"not null;default:true"`
+	Name      string
+	Email     string `gorm:"type:varchar(100);uniqueIndex;not null"`
+	Password  string `gorm:"not null"`
+	Active    bool   `gorm:"not null;default:true"`
+	Avatar    string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	TableUser = "user_tables"
+	TableUser = "user"
 )
 
 type AuthRepositoryImpl struct {
@@ -36,7 +36,7 @@ func (r *AuthRepositoryImpl) FindUserByEmail(ctx context.Context, email string) 
 	var user domain.User
 	if err := r.db.FindByEmail(ctx, TableUser, email, &user); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (r *AuthRepositoryImpl) FindUserByID(ctx context.Context, id uuid.UUID) (*d
 	var user domain.User
 	if err := r.db.FindByID(ctx, TableUser, id, &user); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}

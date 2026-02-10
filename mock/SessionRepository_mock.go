@@ -6,6 +6,7 @@ package mock
 
 import (
 	"context"
+	"time"
 
 	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/google/uuid"
@@ -92,6 +93,66 @@ func (_c *MockSessionRepository_CreateSession_Call) Return(err error) *MockSessi
 }
 
 func (_c *MockSessionRepository_CreateSession_Call) RunAndReturn(run func(ctx context.Context, session *domain.Session) error) *MockSessionRepository_CreateSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteExpiredSessions provides a mock function for the type MockSessionRepository
+func (_mock *MockSessionRepository) DeleteExpiredSessions(ctx context.Context) (int64, error) {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteExpiredSessions")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (int64, error)); ok {
+		return returnFunc(ctx)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context) int64); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSessionRepository_DeleteExpiredSessions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteExpiredSessions'
+type MockSessionRepository_DeleteExpiredSessions_Call struct {
+	*mock.Call
+}
+
+// DeleteExpiredSessions is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockSessionRepository_Expecter) DeleteExpiredSessions(ctx interface{}) *MockSessionRepository_DeleteExpiredSessions_Call {
+	return &MockSessionRepository_DeleteExpiredSessions_Call{Call: _e.mock.On("DeleteExpiredSessions", ctx)}
+}
+
+func (_c *MockSessionRepository_DeleteExpiredSessions_Call) Run(run func(ctx context.Context)) *MockSessionRepository_DeleteExpiredSessions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSessionRepository_DeleteExpiredSessions_Call) Return(n int64, err error) *MockSessionRepository_DeleteExpiredSessions_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockSessionRepository_DeleteExpiredSessions_Call) RunAndReturn(run func(ctx context.Context) (int64, error)) *MockSessionRepository_DeleteExpiredSessions_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -228,6 +289,69 @@ func (_c *MockSessionRepository_FindSessionByID_Call) Return(session *domain.Ses
 }
 
 func (_c *MockSessionRepository_FindSessionByID_Call) RunAndReturn(run func(ctx context.Context, sessionID uuid.UUID) (*domain.Session, error)) *MockSessionRepository_FindSessionByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateSessionExpiry provides a mock function for the type MockSessionRepository
+func (_mock *MockSessionRepository) UpdateSessionExpiry(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) error {
+	ret := _mock.Called(ctx, sessionID, expiresAt)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateSessionExpiry")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, time.Time) error); ok {
+		r0 = returnFunc(ctx, sessionID, expiresAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockSessionRepository_UpdateSessionExpiry_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateSessionExpiry'
+type MockSessionRepository_UpdateSessionExpiry_Call struct {
+	*mock.Call
+}
+
+// UpdateSessionExpiry is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+//   - expiresAt time.Time
+func (_e *MockSessionRepository_Expecter) UpdateSessionExpiry(ctx interface{}, sessionID interface{}, expiresAt interface{}) *MockSessionRepository_UpdateSessionExpiry_Call {
+	return &MockSessionRepository_UpdateSessionExpiry_Call{Call: _e.mock.On("UpdateSessionExpiry", ctx, sessionID, expiresAt)}
+}
+
+func (_c *MockSessionRepository_UpdateSessionExpiry_Call) Run(run func(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time)) *MockSessionRepository_UpdateSessionExpiry_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
+		}
+		var arg2 time.Time
+		if args[2] != nil {
+			arg2 = args[2].(time.Time)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSessionRepository_UpdateSessionExpiry_Call) Return(err error) *MockSessionRepository_UpdateSessionExpiry_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockSessionRepository_UpdateSessionExpiry_Call) RunAndReturn(run func(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) error) *MockSessionRepository_UpdateSessionExpiry_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -84,7 +84,7 @@ func TestSessionAuth(t *testing.T) {
 		sessionID := uuid.New()
 		claims := &domain.TokenClaims{UserID: uuid.New().String(), Email: "user@test.com", SessionID: sessionID.String()}
 		tokenProvider.On("ParseAccessToken", "valid-token").Return(claims, nil)
-		sessionRepo.On("FindSessionByID", mock.Anything, sessionID).Return(nil, nil)
+		sessionRepo.On("FindSessionByID", mock.Anything, sessionID).Return(nil, domain.ErrSessionNotFound)
 
 		c, rec := newMiddlewareContext("valid-token", "")
 		handler := SessionAuth(tokenProvider, sessionRepo, authRepo)(dummyNext)
@@ -159,8 +159,9 @@ func TestSessionAuth(t *testing.T) {
 		sessionRepo.On("FindSessionByID", mock.Anything, sessionID).Return(session, nil)
 		tokenProvider.On("ParseRefreshToken", "valid-refresh").Return(refreshClaims, nil)
 		authRepo.On("FindUserByID", mock.Anything, userID).Return(user, nil)
-		tokenProvider.On("GenerateAccessToken", userID.String(), "user@test.com", sessionID.String()).Return("new-access", nil)
+		tokenProvider.On("GenerateAccessToken", userID.String(), "user@test.com", "", "", sessionID.String()).Return("new-access", nil)
 		tokenProvider.On("GenerateRefreshToken", userID.String(), sessionID.String()).Return("new-refresh", nil)
+		sessionRepo.On("UpdateSessionExpiry", mock.Anything, sessionID, mock.AnythingOfType("time.Time")).Return(nil)
 
 		var ctxUserID, ctxEmail, ctxSessionID string
 		next := func(c echo.Context) error {

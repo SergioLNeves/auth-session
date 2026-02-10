@@ -37,8 +37,8 @@ func (_m *MockTokenProvider) EXPECT() *MockTokenProvider_Expecter {
 }
 
 // GenerateAccessToken provides a mock function for the type MockTokenProvider
-func (_mock *MockTokenProvider) GenerateAccessToken(userID string, email string, sessionID string) (string, error) {
-	ret := _mock.Called(userID, email, sessionID)
+func (_mock *MockTokenProvider) GenerateAccessToken(userID string, email string, name string, avatar string, sessionID string) (string, error) {
+	ret := _mock.Called(userID, email, name, avatar, sessionID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GenerateAccessToken")
@@ -46,16 +46,16 @@ func (_mock *MockTokenProvider) GenerateAccessToken(userID string, email string,
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string, string, string) (string, error)); ok {
-		return returnFunc(userID, email, sessionID)
+	if returnFunc, ok := ret.Get(0).(func(string, string, string, string, string) (string, error)); ok {
+		return returnFunc(userID, email, name, avatar, sessionID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string, string, string) string); ok {
-		r0 = returnFunc(userID, email, sessionID)
+	if returnFunc, ok := ret.Get(0).(func(string, string, string, string, string) string); ok {
+		r0 = returnFunc(userID, email, name, avatar, sessionID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string, string, string) error); ok {
-		r1 = returnFunc(userID, email, sessionID)
+	if returnFunc, ok := ret.Get(1).(func(string, string, string, string, string) error); ok {
+		r1 = returnFunc(userID, email, name, avatar, sessionID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -70,12 +70,14 @@ type MockTokenProvider_GenerateAccessToken_Call struct {
 // GenerateAccessToken is a helper method to define mock.On call
 //   - userID string
 //   - email string
+//   - name string
+//   - avatar string
 //   - sessionID string
-func (_e *MockTokenProvider_Expecter) GenerateAccessToken(userID interface{}, email interface{}, sessionID interface{}) *MockTokenProvider_GenerateAccessToken_Call {
-	return &MockTokenProvider_GenerateAccessToken_Call{Call: _e.mock.On("GenerateAccessToken", userID, email, sessionID)}
+func (_e *MockTokenProvider_Expecter) GenerateAccessToken(userID interface{}, email interface{}, name interface{}, avatar interface{}, sessionID interface{}) *MockTokenProvider_GenerateAccessToken_Call {
+	return &MockTokenProvider_GenerateAccessToken_Call{Call: _e.mock.On("GenerateAccessToken", userID, email, name, avatar, sessionID)}
 }
 
-func (_c *MockTokenProvider_GenerateAccessToken_Call) Run(run func(userID string, email string, sessionID string)) *MockTokenProvider_GenerateAccessToken_Call {
+func (_c *MockTokenProvider_GenerateAccessToken_Call) Run(run func(userID string, email string, name string, avatar string, sessionID string)) *MockTokenProvider_GenerateAccessToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 string
 		if args[0] != nil {
@@ -89,10 +91,20 @@ func (_c *MockTokenProvider_GenerateAccessToken_Call) Run(run func(userID string
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -103,7 +115,7 @@ func (_c *MockTokenProvider_GenerateAccessToken_Call) Return(s string, err error
 	return _c
 }
 
-func (_c *MockTokenProvider_GenerateAccessToken_Call) RunAndReturn(run func(userID string, email string, sessionID string) (string, error)) *MockTokenProvider_GenerateAccessToken_Call {
+func (_c *MockTokenProvider_GenerateAccessToken_Call) RunAndReturn(run func(userID string, email string, name string, avatar string, sessionID string) (string, error)) *MockTokenProvider_GenerateAccessToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

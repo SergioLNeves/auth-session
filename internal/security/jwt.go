@@ -49,11 +49,13 @@ func NewJWTProvider(_ *do.Injector) (domain.TokenProvider, error) {
 	}, nil
 }
 
-func (j *JWTProvider) GenerateAccessToken(userID string, email string, sessionID string) (string, error) {
+func (j *JWTProvider) GenerateAccessToken(userID, email, name, avatar, sessionID string) (string, error) {
 	now := time.Now()
 	claims := jwt.MapClaims{
 		"sub":        userID,
 		"email":      email,
+		"name":       name,
+		"avatar":     avatar,
 		"session_id": sessionID,
 		"iat":        now.Unix(),
 		"exp":        now.Add(j.accessTokenExpiry).Unix(),
@@ -122,6 +124,14 @@ func (j *JWTProvider) parseToken(tokenString string, opts ...jwt.ParserOption) (
 
 	if email, ok := claims["email"].(string); ok {
 		tokenClaims.Email = email
+	}
+
+	if name, ok := claims["name"].(string); ok {
+		tokenClaims.Name = name
+	}
+
+	if avatar, ok := claims["avatar"].(string); ok {
+		tokenClaims.Avatar = avatar
 	}
 
 	return tokenClaims, nil

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/SergioLNeves/auth-session/internal/config"
@@ -48,6 +49,9 @@ func main() {
 	configureHealthcheckRoute(e)
 	configureAuthRoute(e)
 
+	sessionRepo := do.MustInvoke[domain.SessionRepository](injector)
+	startSessionCleanup(sessionRepo)
+
 	api := config.NewAPI(e, config.Env.Port, 10*time.Second)
 	api.Start()
 }
@@ -78,6 +82,22 @@ func configureAuthRoute(e *echo.Echo) {
 	authGroup := v1.Group("/auth")
 	authGroup.POST("/login", authHandler.Login)
 	authGroup.POST("/logout", authHandler.Logout, sessionAuth)
+}
+
+func startSessionCleanup(sessionRepo domain.SessionRepository) {
+	ticker := time.NewTicker(12 * time.Hour)
+	go func() {
+		for range ticker.C {
+			deleted, err := sessionRepo.DeleteExpiredSessions(context.Background())
+			if err != nil {
+				logger.Error("session cleanup failed", zap.Error(err))
+				continue
+			}
+			if deleted > 0 {
+				logger.Info("expired sessions cleaned up", zap.Int64("deleted", deleted))
+			}
+		}
+	}()
 }
 
 func initDependencies(logger *zap.Logger) {

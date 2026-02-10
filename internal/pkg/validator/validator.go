@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/go-playground/locales/en"
@@ -9,6 +10,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 )
+
+var nameRegex = regexp.MustCompile(`^[\p{L}\s'-]{2,}$`)
 
 var (
 	validate *validator.Validate
@@ -18,6 +21,10 @@ var (
 func init() {
 	validate = validator.New()
 
+	if err := validate.RegisterValidation("name", validateName); err != nil {
+		panic("failed to register name validation: " + err.Error())
+	}
+
 	enLocale := en.New()
 	uni = ut.New(enLocale, enLocale)
 
@@ -26,6 +33,10 @@ func init() {
 	if err := en_translations.RegisterDefaultTranslations(validate, transEN); err != nil {
 		panic("failed to register validator translations: " + err.Error())
 	}
+}
+
+func validateName(fl validator.FieldLevel) bool {
+	return nameRegex.MatchString(fl.Field().String())
 }
 
 type CustomValidator struct {

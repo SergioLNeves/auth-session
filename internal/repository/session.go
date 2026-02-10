@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/samber/do"
@@ -12,7 +14,7 @@ import (
 	"github.com/SergioLNeves/auth-session/internal/storage"
 )
 
-var TableSession = "session_tables"
+var TableSession = "session"
 
 type SessionRepositoryImpl struct {
 	db storage.Storage
@@ -34,10 +36,15 @@ func (r *SessionRepositoryImpl) FindSessionByID(ctx context.Context, sessionID u
 	var session domain.Session
 	if err := r.db.FindByID(ctx, TableSession, sessionID, &session); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, domain.ErrSessionNotFound
 		}
 		return nil, err
 	}
+
+	if !session.ExpiresAt.IsZero() && session.ExpiresAt.Before(time.Now()) {
+		return nil, domain.ErrSessionNotFound
+	}
+
 	return &session, nil
 }
 
@@ -47,4 +54,38 @@ func (r *SessionRepositoryImpl) DeleteSession(ctx context.Context, sessionID uui
 		return nil, err
 	}
 	return &session, nil
+}
+
+func (r *SessionRepositoryImpl) UpdateSessionExpiry(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) error {
+	db, ok := r.db.GetDB().(*gorm.DB)
+	if !ok {
+		return fmt.Errorf("failed to get database instance")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	result := db.WithContext(ctx).Table(TableSession).Where("id = ?", sessionID).Update("expires_at", expiresAt)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update session expiry: %w", result.Error)
+	}
+
+	return nil
+}
+
+func (r *SessionRepositoryImpl) DeleteExpiredSessions(ctx context.Context) (int64, error) {
+	db, ok := r.db.GetDB().(*gorm.DB)
+	if !ok {
+		return 0, fmt.Errorf("failed to get database instance")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	result := db.WithContext(ctx).Table(TableSession).Where("expires_at <= ?", time.Now()).Delete(&domain.Session{})
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to delete expired sessions: %w", result.Error)
+	}
+
+	return result.RowsAffected, nil
 }

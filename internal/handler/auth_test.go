@@ -43,10 +43,10 @@ func TestCreateAccount(t *testing.T) {
 		t.Parallel()
 
 		h, authService := newHandler(t)
-		c, rec := newFormContext(http.MethodPost, "/v1/user/create-account", "email=user@test.com&password=password123")
+		c, rec := newFormContext(http.MethodPost, "/v1/user/create-account", "name=Test+User&email=user@test.com&password=password123")
 
 		authService.On("CreateAccount", mock.Anything, domain.CreateAccountRequest{
-			Email: "user@test.com", Password: "password123",
+			Name: "Test User", Email: "user@test.com", Password: "password123",
 		}).Return(&domain.AuthResponse{AccessToken: "at", RefreshToken: "rt"}, nil)
 
 		err := h.CreateAccount(c)
@@ -64,10 +64,10 @@ func TestCreateAccount(t *testing.T) {
 		t.Parallel()
 
 		h, authService := newHandler(t)
-		c, rec := newFormContext(http.MethodPost, "/v1/user/create-account", "email=user@test.com&password=password123")
+		c, rec := newFormContext(http.MethodPost, "/v1/user/create-account", "name=Test+User&email=user@test.com&password=password123")
 
 		authService.On("CreateAccount", mock.Anything, domain.CreateAccountRequest{
-			Email: "user@test.com", Password: "password123",
+			Name: "Test User", Email: "user@test.com", Password: "password123",
 		}).Return(nil, domain.ErrEmailAlreadyExists)
 
 		err := h.CreateAccount(c)
@@ -80,10 +80,10 @@ func TestCreateAccount(t *testing.T) {
 		t.Parallel()
 
 		h, authService := newHandler(t)
-		c, rec := newFormContext(http.MethodPost, "/v1/user/create-account", "email=user@test.com&password=password123")
+		c, rec := newFormContext(http.MethodPost, "/v1/user/create-account", "name=Test+User&email=user@test.com&password=password123")
 
 		authService.On("CreateAccount", mock.Anything, domain.CreateAccountRequest{
-			Email: "user@test.com", Password: "password123",
+			Name: "Test User", Email: "user@test.com", Password: "password123",
 		}).Return(nil, errors.New("unexpected"))
 
 		err := h.CreateAccount(c)

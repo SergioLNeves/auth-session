@@ -8,12 +8,14 @@ type AuthResponse struct {
 type TokenClaims struct {
 	UserID    string
 	Email     string
+	Name      string
+	Avatar    string
 	SessionID string
 }
 
 type TokenProvider interface {
-	GenerateAccessToken(userID string, email string, sessionID string) (string, error)
-	GenerateRefreshToken(userID string, sessionID string) (string, error)
+	GenerateAccessToken(userID, email, name, avatar, sessionID string) (string, error)
+	GenerateRefreshToken(userID, sessionID string) (string, error)
 	ParseAccessToken(tokenString string) (*TokenClaims, error)
 	ParseRefreshToken(tokenString string) (*TokenClaims, error)
 }

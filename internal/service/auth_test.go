@@ -43,11 +43,11 @@ func TestCreateAccount(t *testing.T) {
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
-		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, nil)
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, domain.ErrUserNotFound)
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
-		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string")).Return("access-token", nil)
+		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("refresh-token", nil)
 
 		result, err := svc.CreateAccount(ctx, req)
@@ -97,7 +97,7 @@ func TestCreateAccount(t *testing.T) {
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
-		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, nil)
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, domain.ErrUserNotFound)
 		passwordHasher.On("Hash", "password123").Return("", errors.New("hash error"))
 
 		result, err := svc.CreateAccount(ctx, req)
@@ -114,7 +114,7 @@ func TestCreateAccount(t *testing.T) {
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
-		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, nil)
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, domain.ErrUserNotFound)
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(errors.New("db error"))
 
@@ -132,7 +132,7 @@ func TestCreateAccount(t *testing.T) {
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
-		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, nil)
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, domain.ErrUserNotFound)
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(errors.New("db error"))
@@ -151,11 +151,11 @@ func TestCreateAccount(t *testing.T) {
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
-		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, nil)
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, domain.ErrUserNotFound)
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
-		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string")).Return("", errors.New("token error"))
+		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("", errors.New("token error"))
 
 		result, err := svc.CreateAccount(ctx, req)
 
@@ -171,11 +171,11 @@ func TestCreateAccount(t *testing.T) {
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
-		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, nil)
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, domain.ErrUserNotFound)
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
-		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string")).Return("access-token", nil)
+		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("", errors.New("token error"))
 
 		result, err := svc.CreateAccount(ctx, req)
@@ -198,7 +198,7 @@ func TestLogin(t *testing.T) {
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
 		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
-		tokenProvider.On("GenerateAccessToken", user.ID.String(), "user@test.com", mock.AnythingOfType("string")).Return("access-token", nil)
+		tokenProvider.On("GenerateAccessToken", user.ID.String(), "user@test.com", "", "", mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", user.ID.String(), mock.AnythingOfType("string")).Return("refresh-token", nil)
 
 		result, err := svc.Login(ctx, req)
@@ -216,7 +216,7 @@ func TestLogin(t *testing.T) {
 		ctx := context.Background()
 		req := domain.LoginRequest{Email: "nobody@test.com", Password: "password123"}
 
-		authRepo.On("FindUserByEmail", ctx, "nobody@test.com").Return(nil, nil)
+		authRepo.On("FindUserByEmail", ctx, "nobody@test.com").Return(nil, domain.ErrUserNotFound)
 
 		result, err := svc.Login(ctx, req)
 

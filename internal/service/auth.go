@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/samber/do"
 	"go.uber.org/zap"
 
+	"github.com/SergioLNeves/auth-session/internal/config"
 	"github.com/SergioLNeves/auth-session/internal/domain"
 	"github.com/SergioLNeves/auth-session/internal/pkg/logging"
 )
@@ -33,11 +36,11 @@ func NewAuthService(i *do.Injector) (domain.AuthService, error) {
 }
 
 func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAccountRequest) (*domain.AuthResponse, error) {
-	existingUser, err := s.authRepository.FindUserByEmail(ctx, req.Email)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check existing email: %w", err)
-	}
-	if existingUser != nil {
+	_, err := s.authRepository.FindUserByEmail(ctx, req.Email)
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		if err != nil {
+			return nil, fmt.Errorf("failed to check existing email: %w", err)
+		}
 		return nil, domain.ErrEmailAlreadyExists
 	}
 
@@ -48,9 +51,11 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 
 	user := &domain.User{
 		ID:       uuid.New(),
+		Name:     req.Name,
 		Email:    req.Email,
 		Password: hashedPassword,
 		Active:   true,
+		Avatar:   req.Avatar,
 	}
 
 	if err := s.authRepository.CreateUser(ctx, user); err != nil {
@@ -58,15 +63,16 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 	}
 
 	session := &domain.Session{
-		ID:     uuid.New(),
-		UserID: user.ID,
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(time.Duration(config.Env.Token.RefreshTokenExpiry) * time.Minute),
 	}
 
 	if err := s.sessionRepository.CreateSession(ctx, session); err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
-	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, session.ID.String())
+	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, user.Name, user.Avatar, session.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
@@ -85,10 +91,10 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {
 	user, err := s.authRepository.FindUserByEmail(ctx, req.Email)
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return nil, domain.ErrInvalidCredentials
+		}
 		return nil, fmt.Errorf("failed to find user: %w", err)
-	}
-	if user == nil {
-		return nil, domain.ErrInvalidCredentials
 	}
 
 	if checkErr := s.passwordHasher.Check(req.Password, user.Password); checkErr != nil {
@@ -96,15 +102,16 @@ func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest) (*
 	}
 
 	session := &domain.Session{
-		ID:     uuid.New(),
-		UserID: user.ID,
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(time.Duration(config.Env.Token.RefreshTokenExpiry) * time.Minute),
 	}
 
 	if createErr := s.sessionRepository.CreateSession(ctx, session); createErr != nil {
 		return nil, fmt.Errorf("failed to create session: %w", createErr)
 	}
 
-	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, session.ID.String())
+	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, user.Name, user.Avatar, session.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}

@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -42,14 +44,13 @@ func SessionAuth(
 
 			session, err := sessionRepo.FindSessionByID(c.Request().Context(), sessionID)
 			if err != nil {
+				if errors.Is(err, domain.ErrSessionNotFound) {
+					logger.Info("session not found", zap.String("session_id", sessionID.String()))
+					clearAuthCookies(c)
+					return unauthorizedResponse(c)
+				}
 				logger.Error("failed to find session", zap.Error(err))
 				return internalErrorResponse(c)
-			}
-
-			if session == nil {
-				logger.Info("session not found", zap.String("session_id", sessionID.String()))
-				clearAuthCookies(c)
-				return unauthorizedResponse(c)
 			}
 
 			// Try refresh flow: parse refresh token to check if it's still valid
@@ -78,12 +79,16 @@ func SessionAuth(
 			}
 
 			user, err := authRepo.FindUserByID(c.Request().Context(), userID)
-			if err != nil || user == nil {
+			if err != nil {
+				if errors.Is(err, domain.ErrUserNotFound) {
+					logger.Warn("user not found for token refresh", zap.String("user_id", userID.String()))
+					return unauthorizedResponse(c)
+				}
 				logger.Error("failed to find user for token refresh", zap.Error(err))
 				return internalErrorResponse(c)
 			}
 
-			newAccessToken, err := tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, session.ID.String())
+			newAccessToken, err := tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, user.Name, user.Avatar, session.ID.String())
 			if err != nil {
 				logger.Error("failed to generate new access token", zap.Error(err))
 				return internalErrorResponse(c)
@@ -100,8 +105,15 @@ func SessionAuth(
 				RefreshToken: newRefreshToken,
 			})
 
+			newExpiry := time.Now().Add(time.Duration(config.Env.Token.RefreshTokenExpiry) * time.Minute)
+			if updateErr := sessionRepo.UpdateSessionExpiry(c.Request().Context(), sessionID, newExpiry); updateErr != nil {
+				logger.Error("failed to update session expiry", zap.Error(updateErr))
+			}
+
 			c.Set("user_id", user.ID.String())
 			c.Set("email", user.Email)
+			c.Set("name", user.Name)
+			c.Set("avatar", user.Avatar)
 			c.Set("session_id", session.ID.String())
 
 			return next(c)
