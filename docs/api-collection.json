@@ -1,0 +1,160 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: api-auth-session
+meta:
+  id: wrk_993d32444fad47899af84fbbc32639f8
+  created: 1770526267999
+  modified: 1770689883882
+  description: ""
+collection:
+  - name: Health
+    meta:
+      id: fld_c65e79be1e694793a3afd01113f70ef6
+      created: 1770568321557
+      modified: 1770568396666
+      sortKey: -1770568321658
+      description: ""
+    children:
+      - url: "{{host}}/health"
+        name: Health Check
+        meta:
+          id: req_d017598767e04b748b09d4fc69082172
+          created: 1770568321558
+          modified: 1770689748105
+          isPrivate: false
+          description: ""
+          sortKey: -1770568321558
+        method: GET
+        headers:
+          - name: Accept
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: User
+    meta:
+      id: fld_d01cf3b3b874480e9f2d4596ab595d8c
+      created: 1770568321557
+      modified: 1770568398781
+      sortKey: -1770568321608
+      description: ""
+    children:
+      - url: "{{host}}/v1/user/create-account"
+        name: Create Account
+        meta:
+          id: req_3acfe12f812a4ad8adec4a0c22541dc9
+          created: 1770568321558
+          modified: 1770689791684
+          isPrivate: false
+          description: ""
+          sortKey: -1770568321659
+        method: POST
+        body:
+          mimeType: application/x-www-form-urlencoded
+          params:
+            - name: email
+              value: testuser@example.com
+            - name: password
+              value: password123
+        headers:
+          - name: Content-Type
+            value: application/x-www-form-urlencoded
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Auth
+    meta:
+      id: fld_e8859a7c96f94d37b5a1437bfccfcf18
+      created: 1770568321558
+      modified: 1770568390508
+      sortKey: -1770568321558
+      description: ""
+    children:
+      - url: "{{host}}/v1/auth/login"
+        name: Login
+        meta:
+          id: req_16d55c68b2224c6a9248aabf053738fd
+          created: 1770568321559
+          modified: 1770689795429
+          isPrivate: false
+          description: ""
+          sortKey: -1770568321661
+        method: POST
+        body:
+          mimeType: application/x-www-form-urlencoded
+          params:
+            - name: email
+              value: testuser@example.com
+            - name: password
+              value: password123
+        headers:
+          - name: Content-Type
+            value: application/x-www-form-urlencoded
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{host}}/v1/auth/logout"
+        name: "Logout "
+        meta:
+          id: req_ac223cd13af543a9b728172cdc2f699a
+          created: 1770568321560
+          modified: 1770689800694
+          isPrivate: false
+          description: ""
+          sortKey: -1770568321573.5
+        method: POST
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_3136354d36045971f967f198e0d63a7ea2223e3a
+    created: 1770526268000
+    modified: 1770569752554
+  cookies:
+    - id: 18812eae-85c9-4bad-9906-5db48deecc49
+      key: access_token
+      value: ""
+      domain: localhost
+      path: /
+      secure: false
+      httpOnly: false
+      hostOnly: true
+    - id: 3d08aa5c-2816-4558-ad68-81ca075840aa
+      key: refresh_token
+      value: ""
+      domain: localhost
+      path: /
+      secure: false
+      httpOnly: true
+      hostOnly: true
+environments:
+  name: Local
+  meta:
+    id: env_3136354d36045971f967f198e0d63a7ea2223e3a
+    created: 1770526267999
+    modified: 1770526334746
+    isPrivate: false
+  data:
+    host: http://localhost:8080

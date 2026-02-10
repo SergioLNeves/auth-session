@@ -45,22 +45,11 @@ func main() {
 		}
 	}()
 
-	configureStaticAssets(e)
 	configureHealthcheckRoute(e)
 	configureAuthRoute(e)
 
 	api := config.NewAPI(e, config.Env.Port, 10*time.Second)
 	api.Start()
-}
-
-func configureStaticAssets(e *echo.Echo) {
-	e.Static("/css", "assets/css")
-	e.Static("/js", "assets/js")
-
-	e.File("/", "assets/html/success.html")
-	e.File("/create-account", "assets/html/create-account.html")
-	e.File("/login", "assets/html/login.html")
-	e.File("/password", "assets/html/password.html")
 }
 
 func configureHealthcheckRoute(e *echo.Echo) {
@@ -73,14 +62,13 @@ func configureHealthcheckRoute(e *echo.Echo) {
 }
 
 func configureAuthRoute(e *echo.Echo) {
+	tokenProvider := do.MustInvoke[domain.TokenProvider](injector)
+	sessionRepo := do.MustInvoke[domain.SessionRepository](injector)
+	authRepo := do.MustInvoke[domain.AuthRepository](injector)
 	authHandler, err := do.Invoke[domain.AuthHandler](injector)
 	if err != nil {
 		logger.Fatal("invoke auth handler", zap.Error(err))
 	}
-
-	tokenProvider := do.MustInvoke[domain.TokenProvider](injector)
-	sessionRepo := do.MustInvoke[domain.SessionRepository](injector)
-	authRepo := do.MustInvoke[domain.AuthRepository](injector)
 	sessionAuth := authmiddleware.SessionAuth(tokenProvider, sessionRepo, authRepo)
 
 	v1 := e.Group("/v1")
