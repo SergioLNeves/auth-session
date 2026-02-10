@@ -1,0 +1,31 @@
+app = 'auth-session'
+primary_region = 'gru'
+
+[build]
+  dockerfile = 'docker/Dockerfile'
+
+[env]
+  ENV = 'production'
+  PORT = '8080'
+  LOG_LEVEL = 'info'
+  PRIVATE_KEY_PATH = '/app/private-key.pem'
+  PUBLIC_KEY_PATH = '/app/public-key.pem'
+  DB_PATH = '/data/auth-session.db'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '30s'
+    method = 'GET'
+    path = '/health'
+    timeout = '5s'
+
+[mounts]
+  source = 'data'
+  destination = '/data'

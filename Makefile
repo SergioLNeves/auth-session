@@ -1,6 +1,7 @@
 PRIVATE_KEY = private-key.pem
 PUBLIC_KEY = public-key.pem
 KEY_SIZE = 2048
+DOCKER_IMAGE = auth-session
 
 .PHONY: help
 help:
@@ -10,6 +11,8 @@ help:
 	@echo "  gen-key   - Generate RSA key pair for authentication"
 	@echo "  mocks     - Generate mock implementations for testing"
 	@echo "  lint      - Run code linter"
+	@echo "  docker-build - Build Docker image"
+	@echo "  docker-run   - Run Docker container"
 	@echo "  help      - Show this help message"
 
 .PHONY: setup
@@ -39,3 +42,11 @@ mocks:
 .PHONY: lint
 lint:
 	@golangci-lint run
+
+.PHONY: docker-build
+docker-build:
+	docker build -f docker/Dockerfile -t $(DOCKER_IMAGE) .
+
+.PHONY: docker-run
+docker-run:
+	docker run -p 8080:8080 -v $(PWD)/data:/data $(DOCKER_IMAGE)
