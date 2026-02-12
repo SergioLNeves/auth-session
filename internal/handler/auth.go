@@ -153,6 +153,119 @@ func (e AuthHandlerImpl) Logout(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+func (e AuthHandlerImpl) UpdatePassword(c echo.Context) error {
+	logger := logging.With(zap.String("handler", "AuthHandler.UpdatePassword"))
+
+	var request domain.UpdatePasswordRequest
+	if err := c.Bind(&request); err != nil {
+		logger.Error("failed to bind request", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("user", "invalid-request").
+			WithTitle("Invalid Request").
+			WithStatus(http.StatusBadRequest).
+			WithDetail("Failed to parse request body").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusBadRequest, problemDetails)
+	}
+
+	if err := validatorpkg.NewValidator().Validate(request); err != nil {
+		logger.Error("validation failed", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("user", "validation-error").
+			WithTitle("Validation Failed").
+			WithStatus(http.StatusBadRequest).
+			WithDetail("One or more fields failed validation").
+			WithInstance(c.Request().URL.Path).
+			AddFieldErrors(
+				errorpkg.NewProblemDetailsFromStructValidation(err.(validator.ValidationErrors)),
+			)
+		return c.JSON(http.StatusBadRequest, problemDetails)
+	}
+
+	userID := c.Get("user_id").(string)
+
+	if err := e.AuthService.UpdatePassword(c.Request().Context(), userID, request); err != nil {
+		if errors.Is(err, domain.ErrInvalidCurrentPassword) {
+			logger.Info("invalid current password", zap.String("user_id", userID))
+			problemDetails := errorpkg.NewProblemDetails().
+				WithType("user", "invalid-current-password").
+				WithTitle("Invalid Current Password").
+				WithStatus(http.StatusUnauthorized).
+				WithDetail("The current password provided is incorrect").
+				WithInstance(c.Request().URL.Path)
+			return c.JSON(http.StatusUnauthorized, problemDetails)
+		}
+
+		logger.Error("failed to update password", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("user", "internal-error").
+			WithTitle("Internal Server Error").
+			WithStatus(http.StatusInternalServerError).
+			WithDetail("An unexpected error occurred while updating the password").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusInternalServerError, problemDetails)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (e AuthHandlerImpl) UpdateUser(c echo.Context) error {
+	logger := logging.With(zap.String("handler", "AuthHandler.UpdateUser"))
+
+	var request domain.UpdateUserRequest
+	if err := c.Bind(&request); err != nil {
+		logger.Error("failed to bind request", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("user", "invalid-request").
+			WithTitle("Invalid Request").
+			WithStatus(http.StatusBadRequest).
+			WithDetail("Failed to parse request body").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusBadRequest, problemDetails)
+	}
+
+	if err := validatorpkg.NewValidator().Validate(request); err != nil {
+		logger.Error("validation failed", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("user", "validation-error").
+			WithTitle("Validation Failed").
+			WithStatus(http.StatusBadRequest).
+			WithDetail("One or more fields failed validation").
+			WithInstance(c.Request().URL.Path).
+			AddFieldErrors(
+				errorpkg.NewProblemDetailsFromStructValidation(err.(validator.ValidationErrors)),
+			)
+		return c.JSON(http.StatusBadRequest, problemDetails)
+	}
+
+	userID := c.Get("user_id").(string)
+
+	response, err := e.AuthService.UpdateUser(c.Request().Context(), userID, request)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmailAlreadyExists) {
+			logger.Info("email already exists", zap.String("user_id", userID))
+			problemDetails := errorpkg.NewProblemDetails().
+				WithType("user", "email-already-exists").
+				WithTitle("Email Already Registered").
+				WithStatus(http.StatusConflict).
+				WithDetail("An account with this email already exists").
+				WithInstance(c.Request().URL.Path)
+			return c.JSON(http.StatusConflict, problemDetails)
+		}
+
+		logger.Error("failed to update user", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("user", "internal-error").
+			WithTitle("Internal Server Error").
+			WithStatus(http.StatusInternalServerError).
+			WithDetail("An unexpected error occurred while updating the profile").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusInternalServerError, problemDetails)
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
 func clearAuthCookies(c echo.Context) {
 	c.SetCookie(&http.Cookie{
 		Name:     "access_token",

@@ -188,3 +188,105 @@ func (_c *MockAuthHandler_Logout_Call) RunAndReturn(run func(c echo.Context) err
 	_c.Call.Return(run)
 	return _c
 }
+
+// UpdatePassword provides a mock function for the type MockAuthHandler
+func (_mock *MockAuthHandler) UpdatePassword(c echo.Context) error {
+	ret := _mock.Called(c)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdatePassword")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(echo.Context) error); ok {
+		r0 = returnFunc(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuthHandler_UpdatePassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdatePassword'
+type MockAuthHandler_UpdatePassword_Call struct {
+	*mock.Call
+}
+
+// UpdatePassword is a helper method to define mock.On call
+//   - c echo.Context
+func (_e *MockAuthHandler_Expecter) UpdatePassword(c interface{}) *MockAuthHandler_UpdatePassword_Call {
+	return &MockAuthHandler_UpdatePassword_Call{Call: _e.mock.On("UpdatePassword", c)}
+}
+
+func (_c *MockAuthHandler_UpdatePassword_Call) Run(run func(c echo.Context)) *MockAuthHandler_UpdatePassword_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 echo.Context
+		if args[0] != nil {
+			arg0 = args[0].(echo.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthHandler_UpdatePassword_Call) Return(err error) *MockAuthHandler_UpdatePassword_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuthHandler_UpdatePassword_Call) RunAndReturn(run func(c echo.Context) error) *MockAuthHandler_UpdatePassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateUser provides a mock function for the type MockAuthHandler
+func (_mock *MockAuthHandler) UpdateUser(c echo.Context) error {
+	ret := _mock.Called(c)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateUser")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(echo.Context) error); ok {
+		r0 = returnFunc(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuthHandler_UpdateUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateUser'
+type MockAuthHandler_UpdateUser_Call struct {
+	*mock.Call
+}
+
+// UpdateUser is a helper method to define mock.On call
+//   - c echo.Context
+func (_e *MockAuthHandler_Expecter) UpdateUser(c interface{}) *MockAuthHandler_UpdateUser_Call {
+	return &MockAuthHandler_UpdateUser_Call{Call: _e.mock.On("UpdateUser", c)}
+}
+
+func (_c *MockAuthHandler_UpdateUser_Call) Run(run func(c echo.Context)) *MockAuthHandler_UpdateUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 echo.Context
+		if args[0] != nil {
+			arg0 = args[0].(echo.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthHandler_UpdateUser_Call) Return(err error) *MockAuthHandler_UpdateUser_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuthHandler_UpdateUser_Call) RunAndReturn(run func(c echo.Context) error) *MockAuthHandler_UpdateUser_Call {
+	_c.Call.Return(run)
+	return _c
+}

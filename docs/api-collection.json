@@ -57,10 +57,70 @@ collection:
         body:
           mimeType: application/x-www-form-urlencoded
           params:
+            - name: name
+              value: Test User
             - name: email
               value: testuser@example.com
             - name: password
               value: password123
+        headers:
+          - name: Content-Type
+            value: application/x-www-form-urlencoded
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{host}}/v1/user/password"
+        name: Update Password
+        meta:
+          id: req_a1b2c3d4e5f6478990ab1234cdef5678
+          created: 1770689883882
+          modified: 1770689883882
+          isPrivate: false
+          description: ""
+          sortKey: -1770568321650
+        method: PATCH
+        body:
+          mimeType: application/x-www-form-urlencoded
+          params:
+            - name: current_password
+              value: password123
+            - name: new_password
+              value: newpassword123
+        headers:
+          - name: Content-Type
+            value: application/x-www-form-urlencoded
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{host}}/v1/user/profile"
+        name: Update Profile
+        meta:
+          id: req_b2c3d4e5f6a7489901bc2345defg6789
+          created: 1770689883882
+          modified: 1770689883882
+          isPrivate: false
+          description: ""
+          sortKey: -1770568321640
+        method: PATCH
+        body:
+          mimeType: application/x-www-form-urlencoded
+          params:
+            - name: name
+              value: New Name
+            - name: email
+              value: newemail@example.com
+            - name: avatar
+              value: https://example.com/avatar.png
         headers:
           - name: Content-Type
             value: application/x-www-form-urlencoded

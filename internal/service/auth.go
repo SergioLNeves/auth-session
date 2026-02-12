@@ -146,3 +146,74 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, sessionID string) error {
 
 	return nil
 }
+
+func (s *AuthServiceImpl) UpdatePassword(ctx context.Context, userID string, req domain.UpdatePasswordRequest) error {
+	id, err := uuid.Parse(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	user, err := s.authRepository.FindUserByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to find user: %w", err)
+	}
+
+	if checkErr := s.passwordHasher.Check(req.CurrentPassword, user.Password); checkErr != nil {
+		return domain.ErrInvalidCurrentPassword
+	}
+
+	hashedPassword, err := s.passwordHasher.Hash(req.NewPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user.Password = hashedPassword
+
+	if err := s.authRepository.UpdateUser(ctx, user); err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	return nil
+}
+
+func (s *AuthServiceImpl) UpdateUser(ctx context.Context, userID string, req domain.UpdateUserRequest) (*domain.UserResponse, error) {
+	id, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	user, err := s.authRepository.FindUserByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+
+	if req.Email != "" && req.Email != user.Email {
+		_, findErr := s.authRepository.FindUserByEmail(ctx, req.Email)
+		if !errors.Is(findErr, domain.ErrUserNotFound) {
+			if findErr != nil {
+				return nil, fmt.Errorf("failed to check email availability: %w", findErr)
+			}
+			return nil, domain.ErrEmailAlreadyExists
+		}
+		user.Email = req.Email
+	}
+
+	if req.Name != "" {
+		user.Name = req.Name
+	}
+
+	if req.Avatar != "" {
+		user.Avatar = req.Avatar
+	}
+
+	if err := s.authRepository.UpdateUser(ctx, user); err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	return &domain.UserResponse{
+		ID:     user.ID.String(),
+		Name:   user.Name,
+		Email:  user.Email,
+		Avatar: user.Avatar,
+	}, nil
+}

@@ -78,6 +78,8 @@ func configureAuthRoute(e *echo.Echo) {
 	v1 := e.Group("/v1")
 	userGroup := v1.Group("/user")
 	userGroup.POST("/create-account", authHandler.CreateAccount)
+	userGroup.PATCH("/password", authHandler.UpdatePassword, sessionAuth)
+	userGroup.PATCH("/profile", authHandler.UpdateUser, sessionAuth)
 
 	authGroup := v1.Group("/auth")
 	authGroup.POST("/login", authHandler.Login)

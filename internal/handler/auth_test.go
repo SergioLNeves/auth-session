@@ -209,3 +209,166 @@ func TestLogout(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	})
 }
+
+func TestUpdatePassword(t *testing.T) {
+	t.Run("should return 204 on success", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodPatch, "/v1/user/password", strings.NewReader("current_password=oldpass123&new_password=newpass123"))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+
+		authService.On("UpdatePassword", mock.Anything, "some-user-id", domain.UpdatePasswordRequest{
+			CurrentPassword: "oldpass123", NewPassword: "newpass123",
+		}).Return(nil)
+
+		err := h.UpdatePassword(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+	})
+
+	t.Run("should return 400 on validation error", func(t *testing.T) {
+		t.Parallel()
+
+		h, _ := newHandler(t)
+		c, rec := newFormContext(http.MethodPatch, "/v1/user/password", "")
+
+		err := h.UpdatePassword(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("should return 401 when current password is wrong", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodPatch, "/v1/user/password", strings.NewReader("current_password=wrongpass&new_password=newpass123"))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+
+		authService.On("UpdatePassword", mock.Anything, "some-user-id", domain.UpdatePasswordRequest{
+			CurrentPassword: "wrongpass", NewPassword: "newpass123",
+		}).Return(domain.ErrInvalidCurrentPassword)
+
+		err := h.UpdatePassword(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("should return 500 on service error", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodPatch, "/v1/user/password", strings.NewReader("current_password=oldpass123&new_password=newpass123"))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+
+		authService.On("UpdatePassword", mock.Anything, "some-user-id", domain.UpdatePasswordRequest{
+			CurrentPassword: "oldpass123", NewPassword: "newpass123",
+		}).Return(errors.New("unexpected"))
+
+		err := h.UpdatePassword(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+}
+
+func TestUpdateUser(t *testing.T) {
+	t.Run("should return 200 with updated user on success", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodPatch, "/v1/user/profile", strings.NewReader("name=New+Name&email=new@test.com&avatar=http://avatar.com/pic.png"))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+
+		authService.On("UpdateUser", mock.Anything, "some-user-id", domain.UpdateUserRequest{
+			Name: "New Name", Email: "new@test.com", Avatar: "http://avatar.com/pic.png",
+		}).Return(&domain.UserResponse{
+			ID: "some-user-id", Name: "New Name", Email: "new@test.com", Avatar: "http://avatar.com/pic.png",
+		}, nil)
+
+		err := h.UpdateUser(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var resp domain.UserResponse
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, "some-user-id", resp.ID)
+		assert.Equal(t, "New Name", resp.Name)
+		assert.Equal(t, "new@test.com", resp.Email)
+		assert.Equal(t, "http://avatar.com/pic.png", resp.Avatar)
+	})
+
+	t.Run("should return 400 on validation error", func(t *testing.T) {
+		t.Parallel()
+
+		h, _ := newHandler(t)
+		c, rec := newFormContext(http.MethodPatch, "/v1/user/profile", "email=not-an-email")
+
+		err := h.UpdateUser(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("should return 409 when email already exists", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodPatch, "/v1/user/profile", strings.NewReader("email=taken@test.com"))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+
+		authService.On("UpdateUser", mock.Anything, "some-user-id", domain.UpdateUserRequest{
+			Email: "taken@test.com",
+		}).Return(nil, domain.ErrEmailAlreadyExists)
+
+		err := h.UpdateUser(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusConflict, rec.Code)
+	})
+
+	t.Run("should return 500 on service error", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodPatch, "/v1/user/profile", strings.NewReader("name=New+Name"))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+
+		authService.On("UpdateUser", mock.Anything, "some-user-id", domain.UpdateUserRequest{
+			Name: "New Name",
+		}).Return(nil, errors.New("unexpected"))
+
+		err := h.UpdateUser(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+}

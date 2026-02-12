@@ -230,3 +230,140 @@ func (_c *MockAuthService_Logout_Call) RunAndReturn(run func(ctx context.Context
 	_c.Call.Return(run)
 	return _c
 }
+
+// UpdatePassword provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) UpdatePassword(ctx context.Context, userID string, req domain.UpdatePasswordRequest) error {
+	ret := _mock.Called(ctx, userID, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdatePassword")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, domain.UpdatePasswordRequest) error); ok {
+		r0 = returnFunc(ctx, userID, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuthService_UpdatePassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdatePassword'
+type MockAuthService_UpdatePassword_Call struct {
+	*mock.Call
+}
+
+// UpdatePassword is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - req domain.UpdatePasswordRequest
+func (_e *MockAuthService_Expecter) UpdatePassword(ctx interface{}, userID interface{}, req interface{}) *MockAuthService_UpdatePassword_Call {
+	return &MockAuthService_UpdatePassword_Call{Call: _e.mock.On("UpdatePassword", ctx, userID, req)}
+}
+
+func (_c *MockAuthService_UpdatePassword_Call) Run(run func(ctx context.Context, userID string, req domain.UpdatePasswordRequest)) *MockAuthService_UpdatePassword_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 domain.UpdatePasswordRequest
+		if args[2] != nil {
+			arg2 = args[2].(domain.UpdatePasswordRequest)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_UpdatePassword_Call) Return(err error) *MockAuthService_UpdatePassword_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuthService_UpdatePassword_Call) RunAndReturn(run func(ctx context.Context, userID string, req domain.UpdatePasswordRequest) error) *MockAuthService_UpdatePassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateUser provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) UpdateUser(ctx context.Context, userID string, req domain.UpdateUserRequest) (*domain.UserResponse, error) {
+	ret := _mock.Called(ctx, userID, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateUser")
+	}
+
+	var r0 *domain.UserResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, domain.UpdateUserRequest) (*domain.UserResponse, error)); ok {
+		return returnFunc(ctx, userID, req)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, domain.UpdateUserRequest) *domain.UserResponse); ok {
+		r0 = returnFunc(ctx, userID, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.UserResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, domain.UpdateUserRequest) error); ok {
+		r1 = returnFunc(ctx, userID, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthService_UpdateUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateUser'
+type MockAuthService_UpdateUser_Call struct {
+	*mock.Call
+}
+
+// UpdateUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - req domain.UpdateUserRequest
+func (_e *MockAuthService_Expecter) UpdateUser(ctx interface{}, userID interface{}, req interface{}) *MockAuthService_UpdateUser_Call {
+	return &MockAuthService_UpdateUser_Call{Call: _e.mock.On("UpdateUser", ctx, userID, req)}
+}
+
+func (_c *MockAuthService_UpdateUser_Call) Run(run func(ctx context.Context, userID string, req domain.UpdateUserRequest)) *MockAuthService_UpdateUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 domain.UpdateUserRequest
+		if args[2] != nil {
+			arg2 = args[2].(domain.UpdateUserRequest)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_UpdateUser_Call) Return(userResponse *domain.UserResponse, err error) *MockAuthService_UpdateUser_Call {
+	_c.Call.Return(userResponse, err)
+	return _c
+}
+
+func (_c *MockAuthService_UpdateUser_Call) RunAndReturn(run func(ctx context.Context, userID string, req domain.UpdateUserRequest) (*domain.UserResponse, error)) *MockAuthService_UpdateUser_Call {
+	_c.Call.Return(run)
+	return _c
+}

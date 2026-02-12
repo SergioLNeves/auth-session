@@ -53,3 +53,7 @@ func (r *AuthRepositoryImpl) FindUserByID(ctx context.Context, id uuid.UUID) (*d
 	}
 	return &user, nil
 }
+
+func (r *AuthRepositoryImpl) UpdateUser(ctx context.Context, user *domain.User) error {
+	return r.db.Update(ctx, TableUser, user)
+}

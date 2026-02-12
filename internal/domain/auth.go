@@ -10,9 +10,10 @@ import (
 )
 
 var (
-	ErrEmailAlreadyExists = fmt.Errorf("Error Email Already Exists")
-	ErrInvalidCredentials = fmt.Errorf("Error Invalid Credentials")
-	ErrUserNotFound       = fmt.Errorf("Error User Not Found")
+	ErrEmailAlreadyExists     = fmt.Errorf("Error Email Already Exists")
+	ErrInvalidCredentials     = fmt.Errorf("Error Invalid Credentials")
+	ErrUserNotFound           = fmt.Errorf("Error User Not Found")
+	ErrInvalidCurrentPassword = fmt.Errorf("Error Invalid Current Password")
 )
 
 type CreateAccountRequest struct {
@@ -38,20 +39,43 @@ type LoginRequest struct {
 	Password string `form:"password" validate:"required"`
 }
 
+type UpdatePasswordRequest struct {
+	CurrentPassword string `form:"current_password" validate:"required"`
+	NewPassword     string `form:"new_password" validate:"required,min=8"`
+}
+
+type UpdateUserRequest struct {
+	Name   string `form:"name" validate:"omitempty,name"`
+	Email  string `form:"email" validate:"omitempty,email"`
+	Avatar string `form:"avatar"`
+}
+
+type UserResponse struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Avatar string `json:"avatar"`
+}
+
 type AuthHandler interface {
 	CreateAccount(c echo.Context) error
 	Login(c echo.Context) error
 	Logout(c echo.Context) error
+	UpdatePassword(c echo.Context) error
+	UpdateUser(c echo.Context) error
 }
 
 type AuthService interface {
 	CreateAccount(ctx context.Context, req CreateAccountRequest) (*AuthResponse, error)
 	Login(ctx context.Context, req LoginRequest) (*AuthResponse, error)
 	Logout(ctx context.Context, sessionID string) error
+	UpdatePassword(ctx context.Context, userID string, req UpdatePasswordRequest) error
+	UpdateUser(ctx context.Context, userID string, req UpdateUserRequest) (*UserResponse, error)
 }
 
 type AuthRepository interface {
 	CreateUser(ctx context.Context, user *User) error
 	FindUserByEmail(ctx context.Context, email string) (*User, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (*User, error)
+	UpdateUser(ctx context.Context, user *User) error
 }

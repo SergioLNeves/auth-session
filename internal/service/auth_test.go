@@ -320,3 +320,201 @@ func TestLogout(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to delete session")
 	})
 }
+
+func TestUpdatePassword(t *testing.T) {
+	t.Run("should update password successfully", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "user@test.com", Password: "hashed-old"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		passwordHasher.On("Check", "oldpass", "hashed-old").Return(nil)
+		passwordHasher.On("Hash", "newpass123").Return("hashed-new", nil)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
+
+		err := svc.UpdatePassword(ctx, userID.String(), domain.UpdatePasswordRequest{CurrentPassword: "oldpass", NewPassword: "newpass123"})
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("should return error when user not found", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+
+		authRepo.On("FindUserByID", ctx, userID).Return(nil, domain.ErrUserNotFound)
+
+		err := svc.UpdatePassword(ctx, userID.String(), domain.UpdatePasswordRequest{CurrentPassword: "oldpass", NewPassword: "newpass123"})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to find user")
+	})
+
+	t.Run("should return ErrInvalidCurrentPassword when password is wrong", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "user@test.com", Password: "hashed-old"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		passwordHasher.On("Check", "wrongpass", "hashed-old").Return(errors.New("mismatch"))
+
+		err := svc.UpdatePassword(ctx, userID.String(), domain.UpdatePasswordRequest{CurrentPassword: "wrongpass", NewPassword: "newpass123"})
+
+		assert.ErrorIs(t, err, domain.ErrInvalidCurrentPassword)
+	})
+
+	t.Run("should return error when Hash fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "user@test.com", Password: "hashed-old"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		passwordHasher.On("Check", "oldpass", "hashed-old").Return(nil)
+		passwordHasher.On("Hash", "newpass123").Return("", errors.New("hash error"))
+
+		err := svc.UpdatePassword(ctx, userID.String(), domain.UpdatePasswordRequest{CurrentPassword: "oldpass", NewPassword: "newpass123"})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to hash password")
+	})
+
+	t.Run("should return error when UpdateUser fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "user@test.com", Password: "hashed-old"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		passwordHasher.On("Check", "oldpass", "hashed-old").Return(nil)
+		passwordHasher.On("Hash", "newpass123").Return("hashed-new", nil)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(errors.New("db error"))
+
+		err := svc.UpdatePassword(ctx, userID.String(), domain.UpdatePasswordRequest{CurrentPassword: "oldpass", NewPassword: "newpass123"})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update password")
+	})
+}
+
+func TestUpdateUser(t *testing.T) {
+	t.Run("should update all fields successfully", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "old@test.com", Name: "Old Name", Avatar: "old-avatar"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		authRepo.On("FindUserByEmail", ctx, "new@test.com").Return(nil, domain.ErrUserNotFound)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
+
+		result, err := svc.UpdateUser(ctx, userID.String(), domain.UpdateUserRequest{Name: "New Name", Email: "new@test.com", Avatar: "new-avatar"})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "New Name", result.Name)
+		assert.Equal(t, "new@test.com", result.Email)
+		assert.Equal(t, "new-avatar", result.Avatar)
+	})
+
+	t.Run("should update only name", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "user@test.com", Name: "Old"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
+
+		result, err := svc.UpdateUser(ctx, userID.String(), domain.UpdateUserRequest{Name: "New Name"})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "New Name", result.Name)
+		assert.Equal(t, "user@test.com", result.Email)
+	})
+
+	t.Run("should not check email when same as current", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "same@test.com", Name: "User"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
+
+		result, err := svc.UpdateUser(ctx, userID.String(), domain.UpdateUserRequest{Email: "same@test.com"})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+	})
+
+	t.Run("should return ErrEmailAlreadyExists when email is taken", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "old@test.com", Name: "User"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		authRepo.On("FindUserByEmail", ctx, "taken@test.com").Return(&domain.User{}, nil)
+
+		result, err := svc.UpdateUser(ctx, userID.String(), domain.UpdateUserRequest{Email: "taken@test.com"})
+
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, domain.ErrEmailAlreadyExists)
+	})
+
+	t.Run("should return error when FindUserByID fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+
+		authRepo.On("FindUserByID", ctx, userID).Return(nil, errors.New("db error"))
+
+		result, err := svc.UpdateUser(ctx, userID.String(), domain.UpdateUserRequest{Name: "New Name"})
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to find user")
+	})
+
+	t.Run("should return error when UpdateUser fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+		user := &domain.User{ID: userID, Email: "user@test.com", Name: "Old"}
+
+		authRepo.On("FindUserByID", ctx, userID).Return(user, nil)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(errors.New("db error"))
+
+		result, err := svc.UpdateUser(ctx, userID.String(), domain.UpdateUserRequest{Name: "New Name"})
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update user")
+	})
+}
