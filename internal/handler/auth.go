@@ -266,13 +266,42 @@ func (e AuthHandlerImpl) UpdateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+func (e AuthHandlerImpl) Me(c echo.Context) error {
+	return c.JSON(http.StatusOK, domain.UserResponse{
+		ID:     c.Get("user_id").(string),
+		Name:   c.Get("name").(string),
+		Email:  c.Get("email").(string),
+		Avatar: c.Get("avatar").(string),
+	})
+}
+
+func (e AuthHandlerImpl) DeleteUser(c echo.Context) error {
+	logger := logging.With(zap.String("handler", "AuthHandler.DeleteUser"))
+
+	userID := c.Get("user_id").(string)
+
+	if err := e.AuthService.DeleteUser(c.Request().Context(), userID); err != nil {
+		logger.Error("failed to delete user", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("user", "internal-error").
+			WithTitle("Internal Server Error").
+			WithStatus(http.StatusInternalServerError).
+			WithDetail("An unexpected error occurred while deleting the account").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusInternalServerError, problemDetails)
+	}
+
+	clearAuthCookies(c)
+	return c.NoContent(http.StatusOK)
+}
+
 func clearAuthCookies(c echo.Context) {
 	c.SetCookie(&http.Cookie{
 		Name:     "access_token",
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
-		HttpOnly: false,
+		HttpOnly: true,
 	})
 	c.SetCookie(&http.Cookie{
 		Name:     "refresh_token",
@@ -286,14 +315,12 @@ func clearAuthCookies(c echo.Context) {
 func setAuthCookies(c echo.Context, response *domain.AuthResponse) {
 	isProduction := config.Env.Env == "production"
 
-	// MaxAge expects seconds; env values are in minutes, so multiply by 60
-	// access_token is readable by JS to extract user claims (email)
 	c.SetCookie(&http.Cookie{
 		Name:     "access_token",
 		Value:    response.AccessToken,
 		Path:     "/",
 		MaxAge:   config.Env.Token.AccessTokenExpiry * 60,
-		HttpOnly: false,
+		HttpOnly: true,
 		Secure:   isProduction,
 		SameSite: http.SameSiteStrictMode,
 	})

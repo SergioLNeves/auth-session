@@ -37,8 +37,8 @@ func (_m *MockTokenProvider) EXPECT() *MockTokenProvider_Expecter {
 }
 
 // GenerateAccessToken provides a mock function for the type MockTokenProvider
-func (_mock *MockTokenProvider) GenerateAccessToken(userID string, email string, name string, avatar string, sessionID string) (string, error) {
-	ret := _mock.Called(userID, email, name, avatar, sessionID)
+func (_mock *MockTokenProvider) GenerateAccessToken(sessionID string) (string, error) {
+	ret := _mock.Called(sessionID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GenerateAccessToken")
@@ -46,16 +46,16 @@ func (_mock *MockTokenProvider) GenerateAccessToken(userID string, email string,
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string, string, string, string, string) (string, error)); ok {
-		return returnFunc(userID, email, name, avatar, sessionID)
+	if returnFunc, ok := ret.Get(0).(func(string) (string, error)); ok {
+		return returnFunc(sessionID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string, string, string, string, string) string); ok {
-		r0 = returnFunc(userID, email, name, avatar, sessionID)
+	if returnFunc, ok := ret.Get(0).(func(string) string); ok {
+		r0 = returnFunc(sessionID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string, string, string, string, string) error); ok {
-		r1 = returnFunc(userID, email, name, avatar, sessionID)
+	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
+		r1 = returnFunc(sessionID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -68,43 +68,19 @@ type MockTokenProvider_GenerateAccessToken_Call struct {
 }
 
 // GenerateAccessToken is a helper method to define mock.On call
-//   - userID string
-//   - email string
-//   - name string
-//   - avatar string
 //   - sessionID string
-func (_e *MockTokenProvider_Expecter) GenerateAccessToken(userID interface{}, email interface{}, name interface{}, avatar interface{}, sessionID interface{}) *MockTokenProvider_GenerateAccessToken_Call {
-	return &MockTokenProvider_GenerateAccessToken_Call{Call: _e.mock.On("GenerateAccessToken", userID, email, name, avatar, sessionID)}
+func (_e *MockTokenProvider_Expecter) GenerateAccessToken(sessionID interface{}) *MockTokenProvider_GenerateAccessToken_Call {
+	return &MockTokenProvider_GenerateAccessToken_Call{Call: _e.mock.On("GenerateAccessToken", sessionID)}
 }
 
-func (_c *MockTokenProvider_GenerateAccessToken_Call) Run(run func(userID string, email string, name string, avatar string, sessionID string)) *MockTokenProvider_GenerateAccessToken_Call {
+func (_c *MockTokenProvider_GenerateAccessToken_Call) Run(run func(sessionID string)) *MockTokenProvider_GenerateAccessToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 string
 		if args[0] != nil {
 			arg0 = args[0].(string)
 		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 string
-		if args[3] != nil {
-			arg3 = args[3].(string)
-		}
-		var arg4 string
-		if args[4] != nil {
-			arg4 = args[4].(string)
-		}
 		run(
 			arg0,
-			arg1,
-			arg2,
-			arg3,
-			arg4,
 		)
 	})
 	return _c
@@ -115,7 +91,7 @@ func (_c *MockTokenProvider_GenerateAccessToken_Call) Return(s string, err error
 	return _c
 }
 
-func (_c *MockTokenProvider_GenerateAccessToken_Call) RunAndReturn(run func(userID string, email string, name string, avatar string, sessionID string) (string, error)) *MockTokenProvider_GenerateAccessToken_Call {
+func (_c *MockTokenProvider_GenerateAccessToken_Call) RunAndReturn(run func(sessionID string) (string, error)) *MockTokenProvider_GenerateAccessToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -187,23 +163,23 @@ func (_c *MockTokenProvider_GenerateRefreshToken_Call) RunAndReturn(run func(use
 }
 
 // ParseAccessToken provides a mock function for the type MockTokenProvider
-func (_mock *MockTokenProvider) ParseAccessToken(tokenString string) (*domain.TokenClaims, error) {
+func (_mock *MockTokenProvider) ParseAccessToken(tokenString string) (*domain.AccessTokenClaims, error) {
 	ret := _mock.Called(tokenString)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ParseAccessToken")
 	}
 
-	var r0 *domain.TokenClaims
+	var r0 *domain.AccessTokenClaims
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string) (*domain.TokenClaims, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(string) (*domain.AccessTokenClaims, error)); ok {
 		return returnFunc(tokenString)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) *domain.TokenClaims); ok {
+	if returnFunc, ok := ret.Get(0).(func(string) *domain.AccessTokenClaims); ok {
 		r0 = returnFunc(tokenString)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*domain.TokenClaims)
+			r0 = ret.Get(0).(*domain.AccessTokenClaims)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
@@ -238,34 +214,34 @@ func (_c *MockTokenProvider_ParseAccessToken_Call) Run(run func(tokenString stri
 	return _c
 }
 
-func (_c *MockTokenProvider_ParseAccessToken_Call) Return(tokenClaims *domain.TokenClaims, err error) *MockTokenProvider_ParseAccessToken_Call {
-	_c.Call.Return(tokenClaims, err)
+func (_c *MockTokenProvider_ParseAccessToken_Call) Return(accessTokenClaims *domain.AccessTokenClaims, err error) *MockTokenProvider_ParseAccessToken_Call {
+	_c.Call.Return(accessTokenClaims, err)
 	return _c
 }
 
-func (_c *MockTokenProvider_ParseAccessToken_Call) RunAndReturn(run func(tokenString string) (*domain.TokenClaims, error)) *MockTokenProvider_ParseAccessToken_Call {
+func (_c *MockTokenProvider_ParseAccessToken_Call) RunAndReturn(run func(tokenString string) (*domain.AccessTokenClaims, error)) *MockTokenProvider_ParseAccessToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ParseRefreshToken provides a mock function for the type MockTokenProvider
-func (_mock *MockTokenProvider) ParseRefreshToken(tokenString string) (*domain.TokenClaims, error) {
+func (_mock *MockTokenProvider) ParseRefreshToken(tokenString string) (*domain.RefreshTokenClaims, error) {
 	ret := _mock.Called(tokenString)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ParseRefreshToken")
 	}
 
-	var r0 *domain.TokenClaims
+	var r0 *domain.RefreshTokenClaims
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string) (*domain.TokenClaims, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(string) (*domain.RefreshTokenClaims, error)); ok {
 		return returnFunc(tokenString)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) *domain.TokenClaims); ok {
+	if returnFunc, ok := ret.Get(0).(func(string) *domain.RefreshTokenClaims); ok {
 		r0 = returnFunc(tokenString)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*domain.TokenClaims)
+			r0 = ret.Get(0).(*domain.RefreshTokenClaims)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
@@ -300,12 +276,12 @@ func (_c *MockTokenProvider_ParseRefreshToken_Call) Run(run func(tokenString str
 	return _c
 }
 
-func (_c *MockTokenProvider_ParseRefreshToken_Call) Return(tokenClaims *domain.TokenClaims, err error) *MockTokenProvider_ParseRefreshToken_Call {
-	_c.Call.Return(tokenClaims, err)
+func (_c *MockTokenProvider_ParseRefreshToken_Call) Return(refreshTokenClaims *domain.RefreshTokenClaims, err error) *MockTokenProvider_ParseRefreshToken_Call {
+	_c.Call.Return(refreshTokenClaims, err)
 	return _c
 }
 
-func (_c *MockTokenProvider_ParseRefreshToken_Call) RunAndReturn(run func(tokenString string) (*domain.TokenClaims, error)) *MockTokenProvider_ParseRefreshToken_Call {
+func (_c *MockTokenProvider_ParseRefreshToken_Call) RunAndReturn(run func(tokenString string) (*domain.RefreshTokenClaims, error)) *MockTokenProvider_ParseRefreshToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

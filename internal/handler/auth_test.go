@@ -287,6 +287,72 @@ func TestUpdatePassword(t *testing.T) {
 	})
 }
 
+func TestMe(t *testing.T) {
+	t.Run("should return 200 with user data from context", func(t *testing.T) {
+		t.Parallel()
+
+		h, _ := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodGet, "/v1/auth/me", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+		c.Set("name", "Test User")
+		c.Set("email", "user@test.com")
+		c.Set("avatar", "https://example.com/avatar.png")
+
+		err := h.Me(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var resp domain.UserResponse
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, "some-user-id", resp.ID)
+		assert.Equal(t, "Test User", resp.Name)
+		assert.Equal(t, "user@test.com", resp.Email)
+		assert.Equal(t, "https://example.com/avatar.png", resp.Avatar)
+	})
+}
+
+func TestDeleteUser(t *testing.T) {
+	t.Run("should return 200 on success", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodDelete, "/v1/user", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+
+		authService.On("DeleteUser", mock.Anything, "some-user-id").Return(nil)
+
+		err := h.DeleteUser(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("should return 500 on service error", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodDelete, "/v1/user", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.Set("user_id", "some-user-id")
+
+		authService.On("DeleteUser", mock.Anything, "some-user-id").Return(errors.New("unexpected"))
+
+		err := h.DeleteUser(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+}
+
 func TestUpdateUser(t *testing.T) {
 	t.Run("should return 200 with updated user on success", func(t *testing.T) {
 		t.Parallel()

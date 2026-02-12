@@ -80,10 +80,12 @@ func configureAuthRoute(e *echo.Echo) {
 	userGroup.POST("/create-account", authHandler.CreateAccount)
 	userGroup.PATCH("/password", authHandler.UpdatePassword, sessionAuth)
 	userGroup.PATCH("/profile", authHandler.UpdateUser, sessionAuth)
+	userGroup.DELETE("", authHandler.DeleteUser, sessionAuth)
 
 	authGroup := v1.Group("/auth")
 	authGroup.POST("/login", authHandler.Login)
 	authGroup.POST("/logout", authHandler.Logout, sessionAuth)
+	authGroup.GET("/me", authHandler.Me, sessionAuth)
 }
 
 func startSessionCleanup(sessionRepo domain.SessionRepository) {

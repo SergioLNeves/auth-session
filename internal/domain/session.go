@@ -24,4 +24,5 @@ type SessionRepository interface {
 	DeleteSession(ctx context.Context, sessionID uuid.UUID) (*Session, error)
 	UpdateSessionExpiry(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) error
 	DeleteExpiredSessions(ctx context.Context) (int64, error)
+	DeleteSessionsByUserID(ctx context.Context, userID uuid.UUID) error
 }

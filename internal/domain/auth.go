@@ -63,6 +63,8 @@ type AuthHandler interface {
 	Logout(c echo.Context) error
 	UpdatePassword(c echo.Context) error
 	UpdateUser(c echo.Context) error
+	Me(c echo.Context) error
+	DeleteUser(c echo.Context) error
 }
 
 type AuthService interface {
@@ -71,6 +73,7 @@ type AuthService interface {
 	Logout(ctx context.Context, sessionID string) error
 	UpdatePassword(ctx context.Context, userID string, req UpdatePasswordRequest) error
 	UpdateUser(ctx context.Context, userID string, req UpdateUserRequest) (*UserResponse, error)
+	DeleteUser(ctx context.Context, userID string) error
 }
 
 type AuthRepository interface {
@@ -78,4 +81,5 @@ type AuthRepository interface {
 	FindUserByEmail(ctx context.Context, email string) (*User, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 	UpdateUser(ctx context.Context, user *User) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }

@@ -30,13 +30,13 @@ func SessionAuth(
 				return unauthorizedResponse(c)
 			}
 
-			claims, err := tokenProvider.ParseAccessToken(cookie.Value)
+			accessClaims, err := tokenProvider.ParseAccessToken(cookie.Value)
 			if err != nil {
 				logger.Warn("invalid access token", zap.Error(err))
 				return unauthorizedResponse(c)
 			}
 
-			sessionID, err := uuid.Parse(claims.SessionID)
+			sessionID, err := uuid.Parse(accessClaims.SessionID)
 			if err != nil {
 				logger.Warn("invalid session ID in token", zap.Error(err))
 				return unauthorizedResponse(c)
@@ -71,24 +71,18 @@ func SessionAuth(
 				return unauthorizedResponse(c)
 			}
 
-			// Refresh token is valid — regenerate tokens
-			userID, err := uuid.Parse(claims.UserID)
-			if err != nil {
-				logger.Warn("invalid user ID in token", zap.Error(err))
-				return unauthorizedResponse(c)
-			}
-
-			user, err := authRepo.FindUserByID(c.Request().Context(), userID)
+			// Refresh token is valid — find user from session and regenerate tokens
+			user, err := authRepo.FindUserByID(c.Request().Context(), session.UserID)
 			if err != nil {
 				if errors.Is(err, domain.ErrUserNotFound) {
-					logger.Warn("user not found for token refresh", zap.String("user_id", userID.String()))
+					logger.Warn("user not found for token refresh", zap.String("user_id", session.UserID.String()))
 					return unauthorizedResponse(c)
 				}
 				logger.Error("failed to find user for token refresh", zap.Error(err))
 				return internalErrorResponse(c)
 			}
 
-			newAccessToken, err := tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, user.Name, user.Avatar, session.ID.String())
+			newAccessToken, err := tokenProvider.GenerateAccessToken(session.ID.String())
 			if err != nil {
 				logger.Error("failed to generate new access token", zap.Error(err))
 				return internalErrorResponse(c)
@@ -127,7 +121,7 @@ func clearAuthCookies(c echo.Context) {
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
-		HttpOnly: false,
+		HttpOnly: true,
 	})
 	c.SetCookie(&http.Cookie{
 		Name:     "refresh_token",
@@ -146,7 +140,7 @@ func setAuthCookies(c echo.Context, response *domain.AuthResponse) {
 		Value:    response.AccessToken,
 		Path:     "/",
 		MaxAge:   config.Env.Token.AccessTokenExpiry * 60,
-		HttpOnly: false,
+		HttpOnly: true,
 		Secure:   isProduction,
 		SameSite: http.SameSiteStrictMode,
 	})

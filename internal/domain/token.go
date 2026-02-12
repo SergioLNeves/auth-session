@@ -5,17 +5,18 @@ type AuthResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type TokenClaims struct {
+type AccessTokenClaims struct {
+	SessionID string
+}
+
+type RefreshTokenClaims struct {
 	UserID    string
-	Email     string
-	Name      string
-	Avatar    string
 	SessionID string
 }
 
 type TokenProvider interface {
-	GenerateAccessToken(userID, email, name, avatar, sessionID string) (string, error)
+	GenerateAccessToken(sessionID string) (string, error)
 	GenerateRefreshToken(userID, sessionID string) (string, error)
-	ParseAccessToken(tokenString string) (*TokenClaims, error)
-	ParseRefreshToken(tokenString string) (*TokenClaims, error)
+	ParseAccessToken(tokenString string) (*AccessTokenClaims, error)
+	ParseRefreshToken(tokenString string) (*RefreshTokenClaims, error)
 }

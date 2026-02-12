@@ -49,16 +49,12 @@ func NewJWTProvider(_ *do.Injector) (domain.TokenProvider, error) {
 	}, nil
 }
 
-func (j *JWTProvider) GenerateAccessToken(userID, email, name, avatar, sessionID string) (string, error) {
+func (j *JWTProvider) GenerateAccessToken(sessionID string) (string, error) {
 	now := time.Now()
 	claims := jwt.MapClaims{
-		"sub":        userID,
-		"email":      email,
-		"name":       name,
-		"avatar":     avatar,
-		"session_id": sessionID,
-		"iat":        now.Unix(),
-		"exp":        now.Add(j.accessTokenExpiry).Unix(),
+		"sub": sessionID,
+		"iat": now.Unix(),
+		"exp": now.Add(j.accessTokenExpiry).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
@@ -90,16 +86,40 @@ func (j *JWTProvider) GenerateRefreshToken(userID string, sessionID string) (str
 	return signed, nil
 }
 
-func (j *JWTProvider) ParseAccessToken(tokenString string) (*domain.TokenClaims, error) {
-	// WithoutClaimsValidation allows parsing expired tokens (needed for refresh flow)
-	return j.parseToken(tokenString, jwt.WithoutClaimsValidation())
+func (j *JWTProvider) ParseAccessToken(tokenString string) (*domain.AccessTokenClaims, error) {
+	token, err := j.parseToken(tokenString, jwt.WithoutClaimsValidation())
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+
+	return &domain.AccessTokenClaims{
+		SessionID: claims["sub"].(string),
+	}, nil
 }
 
-func (j *JWTProvider) ParseRefreshToken(tokenString string) (*domain.TokenClaims, error) {
-	return j.parseToken(tokenString)
+func (j *JWTProvider) ParseRefreshToken(tokenString string) (*domain.RefreshTokenClaims, error) {
+	token, err := j.parseToken(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+
+	return &domain.RefreshTokenClaims{
+		UserID:    claims["sub"].(string),
+		SessionID: claims["session_id"].(string),
+	}, nil
 }
 
-func (j *JWTProvider) parseToken(tokenString string, opts ...jwt.ParserOption) (*domain.TokenClaims, error) {
+func (j *JWTProvider) parseToken(tokenString string, opts ...jwt.ParserOption) (*jwt.Token, error) {
 	keyFunc := func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -112,27 +132,5 @@ func (j *JWTProvider) parseToken(tokenString string, opts ...jwt.ParserOption) (
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, fmt.Errorf("invalid token claims")
-	}
-
-	tokenClaims := &domain.TokenClaims{
-		UserID:    claims["sub"].(string),
-		SessionID: claims["session_id"].(string),
-	}
-
-	if email, ok := claims["email"].(string); ok {
-		tokenClaims.Email = email
-	}
-
-	if name, ok := claims["name"].(string); ok {
-		tokenClaims.Name = name
-	}
-
-	if avatar, ok := claims["avatar"].(string); ok {
-		tokenClaims.Avatar = avatar
-	}
-
-	return tokenClaims, nil
+	return token, nil
 }

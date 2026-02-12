@@ -87,6 +87,57 @@ func (_c *MockAuthHandler_CreateAccount_Call) RunAndReturn(run func(c echo.Conte
 	return _c
 }
 
+// DeleteUser provides a mock function for the type MockAuthHandler
+func (_mock *MockAuthHandler) DeleteUser(c echo.Context) error {
+	ret := _mock.Called(c)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteUser")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(echo.Context) error); ok {
+		r0 = returnFunc(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuthHandler_DeleteUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteUser'
+type MockAuthHandler_DeleteUser_Call struct {
+	*mock.Call
+}
+
+// DeleteUser is a helper method to define mock.On call
+//   - c echo.Context
+func (_e *MockAuthHandler_Expecter) DeleteUser(c interface{}) *MockAuthHandler_DeleteUser_Call {
+	return &MockAuthHandler_DeleteUser_Call{Call: _e.mock.On("DeleteUser", c)}
+}
+
+func (_c *MockAuthHandler_DeleteUser_Call) Run(run func(c echo.Context)) *MockAuthHandler_DeleteUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 echo.Context
+		if args[0] != nil {
+			arg0 = args[0].(echo.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthHandler_DeleteUser_Call) Return(err error) *MockAuthHandler_DeleteUser_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuthHandler_DeleteUser_Call) RunAndReturn(run func(c echo.Context) error) *MockAuthHandler_DeleteUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Login provides a mock function for the type MockAuthHandler
 func (_mock *MockAuthHandler) Login(c echo.Context) error {
 	ret := _mock.Called(c)
@@ -185,6 +236,57 @@ func (_c *MockAuthHandler_Logout_Call) Return(err error) *MockAuthHandler_Logout
 }
 
 func (_c *MockAuthHandler_Logout_Call) RunAndReturn(run func(c echo.Context) error) *MockAuthHandler_Logout_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Me provides a mock function for the type MockAuthHandler
+func (_mock *MockAuthHandler) Me(c echo.Context) error {
+	ret := _mock.Called(c)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Me")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(echo.Context) error); ok {
+		r0 = returnFunc(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuthHandler_Me_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Me'
+type MockAuthHandler_Me_Call struct {
+	*mock.Call
+}
+
+// Me is a helper method to define mock.On call
+//   - c echo.Context
+func (_e *MockAuthHandler_Expecter) Me(c interface{}) *MockAuthHandler_Me_Call {
+	return &MockAuthHandler_Me_Call{Call: _e.mock.On("Me", c)}
+}
+
+func (_c *MockAuthHandler_Me_Call) Run(run func(c echo.Context)) *MockAuthHandler_Me_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 echo.Context
+		if args[0] != nil {
+			arg0 = args[0].(echo.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthHandler_Me_Call) Return(err error) *MockAuthHandler_Me_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuthHandler_Me_Call) RunAndReturn(run func(c echo.Context) error) *MockAuthHandler_Me_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -57,3 +57,8 @@ func (r *AuthRepositoryImpl) FindUserByID(ctx context.Context, id uuid.UUID) (*d
 func (r *AuthRepositoryImpl) UpdateUser(ctx context.Context, user *domain.User) error {
 	return r.db.Update(ctx, TableUser, user)
 }
+
+func (r *AuthRepositoryImpl) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	var user domain.User
+	return r.db.FindOneAndDelete(ctx, TableUser, id, &user)
+}

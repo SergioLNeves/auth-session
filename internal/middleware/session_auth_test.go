@@ -82,7 +82,7 @@ func TestSessionAuth(t *testing.T) {
 		authRepo := mockpkg.NewMockAuthRepository(t)
 
 		sessionID := uuid.New()
-		claims := &domain.TokenClaims{UserID: uuid.New().String(), Email: "user@test.com", SessionID: sessionID.String()}
+		claims := &domain.AccessTokenClaims{SessionID: sessionID.String()}
 		tokenProvider.On("ParseAccessToken", "valid-token").Return(claims, nil)
 		sessionRepo.On("FindSessionByID", mock.Anything, sessionID).Return(nil, domain.ErrSessionNotFound)
 
@@ -104,7 +104,7 @@ func TestSessionAuth(t *testing.T) {
 
 		sessionID := uuid.New()
 		session := &domain.Session{ID: sessionID, UserID: uuid.New()}
-		claims := &domain.TokenClaims{UserID: session.UserID.String(), Email: "user@test.com", SessionID: sessionID.String()}
+		claims := &domain.AccessTokenClaims{SessionID: sessionID.String()}
 		tokenProvider.On("ParseAccessToken", "valid-token").Return(claims, nil)
 		sessionRepo.On("FindSessionByID", mock.Anything, sessionID).Return(session, nil)
 
@@ -126,7 +126,7 @@ func TestSessionAuth(t *testing.T) {
 
 		sessionID := uuid.New()
 		session := &domain.Session{ID: sessionID, UserID: uuid.New()}
-		claims := &domain.TokenClaims{UserID: session.UserID.String(), Email: "user@test.com", SessionID: sessionID.String()}
+		claims := &domain.AccessTokenClaims{SessionID: sessionID.String()}
 		tokenProvider.On("ParseAccessToken", "valid-token").Return(claims, nil)
 		sessionRepo.On("FindSessionByID", mock.Anything, sessionID).Return(session, nil)
 		tokenProvider.On("ParseRefreshToken", "expired-refresh").Return(nil, errors.New("expired"))
@@ -152,14 +152,14 @@ func TestSessionAuth(t *testing.T) {
 		sessionID := uuid.New()
 		session := &domain.Session{ID: sessionID, UserID: userID}
 		user := &domain.User{ID: userID, Email: "user@test.com"}
-		claims := &domain.TokenClaims{UserID: userID.String(), Email: "user@test.com", SessionID: sessionID.String()}
-		refreshClaims := &domain.TokenClaims{UserID: userID.String(), SessionID: sessionID.String()}
+		accessClaims := &domain.AccessTokenClaims{SessionID: sessionID.String()}
+		refreshClaims := &domain.RefreshTokenClaims{UserID: userID.String(), SessionID: sessionID.String()}
 
-		tokenProvider.On("ParseAccessToken", "valid-token").Return(claims, nil)
+		tokenProvider.On("ParseAccessToken", "valid-token").Return(accessClaims, nil)
 		sessionRepo.On("FindSessionByID", mock.Anything, sessionID).Return(session, nil)
 		tokenProvider.On("ParseRefreshToken", "valid-refresh").Return(refreshClaims, nil)
 		authRepo.On("FindUserByID", mock.Anything, userID).Return(user, nil)
-		tokenProvider.On("GenerateAccessToken", userID.String(), "user@test.com", "", "", sessionID.String()).Return("new-access", nil)
+		tokenProvider.On("GenerateAccessToken", sessionID.String()).Return("new-access", nil)
 		tokenProvider.On("GenerateRefreshToken", userID.String(), sessionID.String()).Return("new-refresh", nil)
 		sessionRepo.On("UpdateSessionExpiry", mock.Anything, sessionID, mock.AnythingOfType("time.Time")).Return(nil)
 

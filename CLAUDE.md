@@ -49,10 +49,6 @@ internal/
   |- config/                 -> Configuration and environment management
   |- pkg/                    -> Reusable utilities (logging, validation, error handling)
   +- security/               -> JWT (RS256 signing/parsing) and bcrypt password hashing
-assets/
-  |- html/                   -> Pages (create-account, login, password, success)
-  |- css/                    -> Stylesheets
-  +- js/                     -> Scripts (auth utilities, form handlers)
 ```
 
 ### Request Flow
@@ -155,12 +151,13 @@ type UserTable struct {
 type SessionTable struct {
     ID        uuid.UUID `gorm:"type:uuid;primary_key"`
     UserID    uuid.UUID `gorm:"type:uuid;not null;index"`
+    ExpiresAt time.Time `gorm:"not null;index"`
     CreatedAt time.Time
     UpdatedAt time.Time
 }
 ```
 
-Repository implementations use table name constants (e.g., `TableUser = "user_tables"`, `TableSession = "session_tables"`) when calling storage methods.
+Repository implementations use table name constants (e.g., `TableUser = "user"`, `TableSession = "session"`) when calling storage methods.
 
 ### Storage Interface
 
@@ -192,6 +189,10 @@ type Querier interface {
 - **Account creation**: `POST /v1/user/create-account` -- full flow with validation, bcrypt hash, session creation and JWT generation
 - **Login**: `POST /v1/auth/login` -- full flow with email/password verification, session creation and JWT generation
 - **Logout**: `POST /v1/auth/logout` -- protected by SessionAuth middleware, deletes session from DB, clears cookies
+- **Me**: `GET /v1/auth/me` -- protected by SessionAuth middleware, returns user data from session context
+- **Update password**: `PATCH /v1/user/password` -- protected by SessionAuth middleware, validates current password
+- **Update profile**: `PATCH /v1/user/profile` -- protected by SessionAuth middleware, updates user fields
+- **Delete user**: `DELETE /v1/user` -- protected by SessionAuth middleware, deletes all sessions and user (self-deletion)
 - **Session auth middleware**: `internal/middleware/session_auth.go` -- validates session, handles refresh token rotation
 - **Password hashing**: bcrypt cost 12 (`internal/security/bcrypt.go`) via `PasswordHasher` interface
 
@@ -199,46 +200,42 @@ type Querier interface {
 
 Token generation and parsing is handled by `internal/security/jwt.go` (`JWTProvider`):
 - Loads both private key (signing) and public key (verification) from PEM files at startup
-- Access token claims: `sub` (userID), `email`, `session_id`, `iat`, `exp`
+- Access token claims: `sub` (sessionID), `iat`, `exp` -- pure authentication token
 - Refresh token claims: `sub` (userID), `session_id`, `iat`, `exp`
 - `ParseAccessToken` uses `jwt.WithoutClaimsValidation()` to allow parsing expired tokens (needed for middleware refresh flow)
+- `ParseAccessToken` returns `*AccessTokenClaims` (SessionID only)
+- `ParseRefreshToken` returns `*RefreshTokenClaims` (UserID + SessionID)
 - Expiry durations are configured via environment variables in **minutes**
+- User information (email, name, avatar) is NOT stored in tokens; it comes from the `/me` endpoint
 
 ### Sessions
 
-Sessions are persisted in `session_tables` (SQLite). Each login/account creation produces a new session row with a UUID. The session ID is embedded as `session_id` in JWT claims. On logout, the session is **deleted** from the database via `FindOneAndDelete` (not deactivated -- the session table has no `active` field).
+Sessions are persisted in the `session` table (SQLite). Each login/account creation produces a new session row with a UUID. The session ID is embedded as `sub` in the access token JWT claims. On logout, the session is **deleted** from the database via `FindOneAndDelete` (not deactivated -- the session table has no `active` field).
 
 Key interfaces:
-- `domain.SessionRepository`: `CreateSession`, `FindSessionByID`, `DeleteSession`
+- `domain.SessionRepository`: `CreateSession`, `FindSessionByID`, `DeleteSession`, `UpdateSessionExpiry`, `DeleteExpiredSessions`, `DeleteSessionsByUserID`
 - Implemented in `internal/repository/session.go`
 
 ### Session Auth Middleware
 
 `internal/middleware/session_auth.go` protects authenticated routes:
-1. Parses access token (allows expired via `WithoutClaimsValidation`)
+1. Parses access token (allows expired via `WithoutClaimsValidation`) -- extracts `sessionID` from `sub`
 2. Validates session exists in DB
 3. Checks refresh token:
    - If expired: deletes session from DB, clears cookies, returns 401
-   - If valid: regenerates both tokens, sets new cookies
-4. Injects `user_id`, `email`, `session_id` into Echo context via `c.Set()`
+   - If valid: finds user by `session.UserID` (from DB, not token), regenerates both tokens, sets new cookies
+4. Injects `user_id`, `email`, `name`, `avatar`, `session_id` into Echo context via `c.Set()`
 
 Applied per-route: `authGroup.POST("/logout", handler.Logout, sessionAuth)`
 
 ### Cookies
 
 Auth cookies are set via `setAuthCookies()` in both handler and middleware:
-- `access_token`: **not** HttpOnly (readable by JS for claim extraction), SameSite=Strict, Secure in production
+- `access_token`: HttpOnly, SameSite=Strict, Secure in production
 - `refresh_token`: HttpOnly, SameSite=Strict, Secure in production
+- Both cookies are **HttpOnly** -- user data is accessed via the `/me` endpoint instead of decoding tokens client-side
 - MaxAge is derived from env variables (minutes x 60 = seconds)
 - Cleared via `clearAuthCookies()` on logout (MaxAge=-1)
-
-### Frontend Auth
-
-`assets/js/auth.js` provides shared utilities:
-- `getUser()`: decodes JWT from cookie, returns `{id, email}` or null
-- `requireAuth()`: redirects to `/login` if not authenticated
-- `requireGuest()`: redirects to `/` if already authenticated
-- `logout()`: calls `POST /v1/auth/logout` and redirects to `/login`
 
 ## Configuration
 
@@ -317,6 +314,4 @@ Linting configuration in `.golangci.yml`:
 - Air configuration (`.air.toml`) watches `.go`, `.html`, and template files
 - The project uses Go 1.25.4
 - SQLite database location is configured via the `DB_PATH` env variable
-- Assets (HTML, CSS, JS) are in `assets/` directory, served as static files via Echo
-- Static assets are served at `/css`, `/js`; HTML pages at `/`, `/create-account`, `/login`, `/password`
-- Password recovery is not yet implemented (only static HTML page exists)
+- Password recovery is not yet implemented

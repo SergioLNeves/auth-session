@@ -72,7 +72,7 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
-	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, user.Name, user.Avatar, session.ID.String())
+	accessToken, err := s.tokenProvider.GenerateAccessToken(session.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
@@ -111,7 +111,7 @@ func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest) (*
 		return nil, fmt.Errorf("failed to create session: %w", createErr)
 	}
 
-	accessToken, err := s.tokenProvider.GenerateAccessToken(user.ID.String(), user.Email, user.Name, user.Avatar, session.ID.String())
+	accessToken, err := s.tokenProvider.GenerateAccessToken(session.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
@@ -216,4 +216,24 @@ func (s *AuthServiceImpl) UpdateUser(ctx context.Context, userID string, req dom
 		Email:  user.Email,
 		Avatar: user.Avatar,
 	}, nil
+}
+
+func (s *AuthServiceImpl) DeleteUser(ctx context.Context, userID string) error {
+	id, err := uuid.Parse(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	if err := s.sessionRepository.DeleteSessionsByUserID(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete user sessions: %w", err)
+	}
+
+	if err := s.authRepository.DeleteUser(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	logging.With(zap.String("service", "AuthService.DeleteUser")).
+		Info("user deleted", zap.String("user_id", userID))
+
+	return nil
 }

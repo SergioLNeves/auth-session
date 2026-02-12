@@ -47,7 +47,7 @@ func TestCreateAccount(t *testing.T) {
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
-		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("access-token", nil)
+		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("refresh-token", nil)
 
 		result, err := svc.CreateAccount(ctx, req)
@@ -155,7 +155,7 @@ func TestCreateAccount(t *testing.T) {
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
-		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("", errors.New("token error"))
+		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("", errors.New("token error"))
 
 		result, err := svc.CreateAccount(ctx, req)
 
@@ -175,7 +175,7 @@ func TestCreateAccount(t *testing.T) {
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
-		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string"), "user@test.com", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("access-token", nil)
+		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("", errors.New("token error"))
 
 		result, err := svc.CreateAccount(ctx, req)
@@ -198,7 +198,7 @@ func TestLogin(t *testing.T) {
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
 		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
-		tokenProvider.On("GenerateAccessToken", user.ID.String(), "user@test.com", "", "", mock.AnythingOfType("string")).Return("access-token", nil)
+		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", user.ID.String(), mock.AnythingOfType("string")).Return("refresh-token", nil)
 
 		result, err := svc.Login(ctx, req)
@@ -516,5 +516,53 @@ func TestUpdateUser(t *testing.T) {
 		assert.Nil(t, result)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update user")
+	})
+}
+
+func TestDeleteUser(t *testing.T) {
+	t.Run("should delete user successfully", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, sessionRepo, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+
+		sessionRepo.On("DeleteSessionsByUserID", ctx, userID).Return(nil)
+		authRepo.On("DeleteUser", ctx, userID).Return(nil)
+
+		err := svc.DeleteUser(ctx, userID.String())
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("should return error when DeleteSessionsByUserID fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, _, sessionRepo, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+
+		sessionRepo.On("DeleteSessionsByUserID", ctx, userID).Return(errors.New("db error"))
+
+		err := svc.DeleteUser(ctx, userID.String())
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete user sessions")
+	})
+
+	t.Run("should return error when DeleteUser fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, sessionRepo, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+
+		sessionRepo.On("DeleteSessionsByUserID", ctx, userID).Return(nil)
+		authRepo.On("DeleteUser", ctx, userID).Return(errors.New("db error"))
+
+		err := svc.DeleteUser(ctx, userID.String())
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete user")
 	})
 }

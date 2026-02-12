@@ -73,6 +73,19 @@ func (r *SessionRepositoryImpl) UpdateSessionExpiry(ctx context.Context, session
 	return nil
 }
 
+func (r *SessionRepositoryImpl) DeleteSessionsByUserID(ctx context.Context, userID uuid.UUID) error {
+	db, ok := r.db.GetDB().(*gorm.DB)
+	if !ok {
+		return fmt.Errorf("failed to get database instance")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	result := db.WithContext(ctx).Table(TableSession).Where("user_id = ?", userID).Delete(&domain.Session{})
+	return result.Error
+}
+
 func (r *SessionRepositoryImpl) DeleteExpiredSessions(ctx context.Context) (int64, error) {
 	db, ok := r.db.GetDB().(*gorm.DB)
 	if !ok {
