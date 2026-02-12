@@ -192,7 +192,8 @@ type Querier interface {
 - **Me**: `GET /v1/auth/me` -- protected by SessionAuth middleware, returns user data from session context
 - **Update password**: `PATCH /v1/user/password` -- protected by SessionAuth middleware, validates current password
 - **Update profile**: `PATCH /v1/user/profile` -- protected by SessionAuth middleware, updates user fields
-- **Delete user**: `DELETE /v1/user` -- protected by SessionAuth middleware, deletes all sessions and user (self-deletion)
+- **Delete user**: `DELETE /v1/user` -- protected by SessionAuth middleware, soft-deletes user (sets `deleted_at`) and deletes all sessions
+- **Reactivate account**: `PATCH /v1/user/reactivate` -- public route, verifies email+password, clears `deleted_at`, creates new session
 - **Session auth middleware**: `internal/middleware/session_auth.go` -- validates session, handles refresh token rotation
 - **Password hashing**: bcrypt cost 12 (`internal/security/bcrypt.go`) via `PasswordHasher` interface
 
@@ -214,7 +215,8 @@ Sessions are persisted in the `session` table (SQLite). Each login/account creat
 
 Key interfaces:
 - `domain.SessionRepository`: `CreateSession`, `FindSessionByID`, `DeleteSession`, `UpdateSessionExpiry`, `DeleteExpiredSessions`, `DeleteSessionsByUserID`
-- Implemented in `internal/repository/session.go`
+- `domain.AuthRepository`: includes `DeleteDeactivatedUsers` for cleanup of soft-deleted users after 7 days
+- Implemented in `internal/repository/session.go` and `internal/repository/auth.go`
 
 ### Session Auth Middleware
 
@@ -315,3 +317,6 @@ Linting configuration in `.golangci.yml`:
 - The project uses Go 1.25.4
 - SQLite database location is configured via the `DB_PATH` env variable
 - Password recovery is not yet implemented
+- User deletion uses **soft delete** (`deleted_at` timestamp) with a 7-day window before permanent hard delete via background cleanup job
+- `FindUserByEmail` returns users regardless of `deleted_at` (allows Login to return 403 for deactivated accounts)
+- `FindUserByID` filters `deleted_at IS NULL` (protects middleware from finding soft-deleted users)
