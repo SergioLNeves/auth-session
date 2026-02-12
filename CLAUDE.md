@@ -140,10 +140,10 @@ GORM is used for SQLite interaction. Storage models live in `internal/storage/sq
 
 ```go
 type UserTable struct {
-    ID        uuid.UUID `gorm:"type:uuid;primary_key"`
-    Email     string    `gorm:"uniqueIndex;not null"`
-    Password  string    `gorm:"not null"`
-    Active    bool      `gorm:"default:true"`
+    ID        uuid.UUID  `gorm:"type:uuid;primary_key"`
+    Email     string     `gorm:"uniqueIndex;not null"`
+    Password  string     `gorm:"not null"`
+    DeletedAt *time.Time `gorm:"index"`
     CreatedAt time.Time
     UpdatedAt time.Time
 }

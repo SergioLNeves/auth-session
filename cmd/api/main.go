@@ -52,6 +52,9 @@ func main() {
 	sessionRepo := do.MustInvoke[domain.SessionRepository](injector)
 	startSessionCleanup(sessionRepo)
 
+	authRepo := do.MustInvoke[domain.AuthRepository](injector)
+	startUserCleanup(authRepo)
+
 	api := config.NewAPI(e, config.Env.Port, 10*time.Second)
 	api.Start()
 }
@@ -81,6 +84,7 @@ func configureAuthRoute(e *echo.Echo) {
 	userGroup.PATCH("/password", authHandler.UpdatePassword, sessionAuth)
 	userGroup.PATCH("/profile", authHandler.UpdateUser, sessionAuth)
 	userGroup.DELETE("", authHandler.DeleteUser, sessionAuth)
+	userGroup.PATCH("/reactivate", authHandler.ReactivateAccount)
 
 	authGroup := v1.Group("/auth")
 	authGroup.POST("/login", authHandler.Login)
@@ -99,6 +103,22 @@ func startSessionCleanup(sessionRepo domain.SessionRepository) {
 			}
 			if deleted > 0 {
 				logger.Info("expired sessions cleaned up", zap.Int64("deleted", deleted))
+			}
+		}
+	}()
+}
+
+func startUserCleanup(authRepo domain.AuthRepository) {
+	ticker := time.NewTicker(24 * time.Hour)
+	go func() {
+		for range ticker.C {
+			deleted, err := authRepo.DeleteDeactivatedUsers(context.Background())
+			if err != nil {
+				logger.Error("user cleanup failed", zap.Error(err))
+				continue
+			}
+			if deleted > 0 {
+				logger.Info("deactivated users cleaned up", zap.Int64("deleted", deleted))
 			}
 		}
 	}()

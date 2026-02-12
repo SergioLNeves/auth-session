@@ -2,14 +2,14 @@ type: collection.insomnia.rest/5.0
 schema_version: "5.1"
 name: api-auth-session
 meta:
-  id: wrk_993d32444fad47899af84fbbc32639f8
-  created: 1770526267999
-  modified: 1770689883882
+  id: wrk_70c6bd60197846f684cc513c24af6088
+  created: 1770910750157
+  modified: 1770910750157
   description: ""
 collection:
   - name: Health
     meta:
-      id: fld_c65e79be1e694793a3afd01113f70ef6
+      id: fld_321e0e714fd64018a176a1d60c3b3ce2
       created: 1770568321557
       modified: 1770568396666
       sortKey: -1770568321658
@@ -18,9 +18,9 @@ collection:
       - url: "{{host}}/health"
         name: Health Check
         meta:
-          id: req_d017598767e04b748b09d4fc69082172
+          id: req_a8f3c0b6d9644936b8cdf05c0fd493f8
           created: 1770568321558
-          modified: 1770689748105
+          modified: 1770911252141
           isPrivate: false
           description: ""
           sortKey: -1770568321558
@@ -38,7 +38,7 @@ collection:
           rebuildPath: true
   - name: User
     meta:
-      id: fld_d01cf3b3b874480e9f2d4596ab595d8c
+      id: fld_60bbba3de08e4f4ba2dcaa90699dadeb
       created: 1770568321557
       modified: 1770568398781
       sortKey: -1770568321608
@@ -47,7 +47,7 @@ collection:
       - url: "{{host}}/v1/user/create-account"
         name: Create Account
         meta:
-          id: req_3acfe12f812a4ad8adec4a0c22541dc9
+          id: req_73b1685ca0b5426e964b3472d6878263
           created: 1770568321558
           modified: 1770689791684
           isPrivate: false
@@ -74,26 +74,19 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: "{{host}}/v1/user/password"
-        name: Update Password
+      - url: "{{host}}/v1/user"
+        name: Delete User
         meta:
-          id: req_a1b2c3d4e5f6478990ab1234cdef5678
+          id: req_171f685ba68a4891ab75829b00a9dd18
           created: 1770689883882
-          modified: 1770689883882
+          modified: 1770911008248
           isPrivate: false
           description: ""
-          sortKey: -1770568321650
-        method: PATCH
-        body:
-          mimeType: application/x-www-form-urlencoded
-          params:
-            - name: current_password
-              value: password123
-            - name: new_password
-              value: newpassword123
+          sortKey: -1770568321630
+        method: DELETE
         headers:
-          - name: Content-Type
-            value: application/x-www-form-urlencoded
+          - name: Accept
+            value: application/json
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -105,7 +98,7 @@ collection:
       - url: "{{host}}/v1/user/profile"
         name: Update Profile
         meta:
-          id: req_b2c3d4e5f6a7489901bc2345defg6789
+          id: req_41517c7673244f27a00a8a2b61d88948
           created: 1770689883882
           modified: 1770689883882
           isPrivate: false
@@ -132,19 +125,54 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: "{{host}}/v1/user"
-        name: Delete User
+      - url: "{{host}}/v1/user/password"
+        name: Update Password
         meta:
-          id: req_d4e5f6a7b8c9501023de4567fghi8901
+          id: req_4d0f3eace4664a139e730225e7d8ced4
           created: 1770689883882
           modified: 1770689883882
           isPrivate: false
           description: ""
-          sortKey: -1770568321630
-        method: DELETE
+          sortKey: -1770568321650
+        method: PATCH
+        body:
+          mimeType: application/x-www-form-urlencoded
+          params:
+            - name: current_password
+              value: password123
+            - name: new_password
+              value: newpassword123
         headers:
-          - name: Accept
-            value: application/json
+          - name: Content-Type
+            value: application/x-www-form-urlencoded
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{host}}/v1/user/reactivate"
+        name: Reactivate Account
+        meta:
+          id: req_b1250d7ccb7d4d10b0a60f76b51172ab
+          created: 1770689883882
+          modified: 1770911252941
+          isPrivate: false
+          description: ""
+          sortKey: -1770568321530
+        method: PATCH
+        body:
+          mimeType: application/x-www-form-urlencoded
+          params:
+            - name: email
+              value: newemail@example.com
+            - name: password
+              value: newpassword123
+        headers:
+          - name: Content-Type
+            value: application/x-www-form-urlencoded
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -155,7 +183,7 @@ collection:
           rebuildPath: true
   - name: Auth
     meta:
-      id: fld_e8859a7c96f94d37b5a1437bfccfcf18
+      id: fld_9c44be05382745af897f0d348adf8e88
       created: 1770568321558
       modified: 1770568390508
       sortKey: -1770568321558
@@ -164,9 +192,9 @@ collection:
       - url: "{{host}}/v1/auth/login"
         name: Login
         meta:
-          id: req_16d55c68b2224c6a9248aabf053738fd
+          id: req_ab046f8b97c14fbbac8396f248eacf4c
           created: 1770568321559
-          modified: 1770689795429
+          modified: 1770911549041
           isPrivate: false
           description: ""
           sortKey: -1770568321661
@@ -175,9 +203,9 @@ collection:
           mimeType: application/x-www-form-urlencoded
           params:
             - name: email
-              value: testuser@example.com
+              value: newemail@example.com
             - name: password
-              value: password123
+              value: newpassword123
         headers:
           - name: Content-Type
             value: application/x-www-form-urlencoded
@@ -192,9 +220,9 @@ collection:
       - url: "{{host}}/v1/auth/logout"
         name: "Logout "
         meta:
-          id: req_ac223cd13af543a9b728172cdc2f699a
+          id: req_19ae0e3e82f14b2192cc2c6461a95bd4
           created: 1770568321560
-          modified: 1770689800694
+          modified: 1770911560557
           isPrivate: false
           description: ""
           sortKey: -1770568321573.5
@@ -210,12 +238,12 @@ collection:
       - url: "{{host}}/v1/auth/me"
         name: Me
         meta:
-          id: req_c3d4e5f6a7b8490012cd3456efgh7890
+          id: req_dc381a1e79934a3c889182b9b0e0491a
           created: 1770689883882
-          modified: 1770689883882
+          modified: 1770911558632
           isPrivate: false
           description: ""
-          sortKey: -1770568321560
+          sortKey: -1770568321617.25
         method: GET
         headers:
           - name: Accept
@@ -231,19 +259,19 @@ collection:
 cookieJar:
   name: Default Jar
   meta:
-    id: jar_3136354d36045971f967f198e0d63a7ea2223e3a
+    id: jar_255b7b80ab3a41df8d63decfb7678044
     created: 1770526268000
-    modified: 1770569752554
+    modified: 1770911560665
   cookies:
-    - id: 18812eae-85c9-4bad-9906-5db48deecc49
+    - id: eb8d0622-91c9-4a9a-a6a3-d187dc717087
       key: access_token
       value: ""
       domain: localhost
       path: /
       secure: false
-      httpOnly: false
+      httpOnly: true
       hostOnly: true
-    - id: 3d08aa5c-2816-4558-ad68-81ca075840aa
+    - id: 846e8aca-c09d-48c1-9ef7-36cf794241ea
       key: refresh_token
       value: ""
       domain: localhost
@@ -254,7 +282,7 @@ cookieJar:
 environments:
   name: Local
   meta:
-    id: env_3136354d36045971f967f198e0d63a7ea2223e3a
+    id: env_3c48eee828bc41a4bf83e29a5e85a224
     created: 1770526267999
     modified: 1770526334746
     isPrivate: false

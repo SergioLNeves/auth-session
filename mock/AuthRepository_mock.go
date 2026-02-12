@@ -96,6 +96,66 @@ func (_c *MockAuthRepository_CreateUser_Call) RunAndReturn(run func(ctx context.
 	return _c
 }
 
+// DeleteDeactivatedUsers provides a mock function for the type MockAuthRepository
+func (_mock *MockAuthRepository) DeleteDeactivatedUsers(ctx context.Context) (int64, error) {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteDeactivatedUsers")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (int64, error)); ok {
+		return returnFunc(ctx)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context) int64); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthRepository_DeleteDeactivatedUsers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteDeactivatedUsers'
+type MockAuthRepository_DeleteDeactivatedUsers_Call struct {
+	*mock.Call
+}
+
+// DeleteDeactivatedUsers is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockAuthRepository_Expecter) DeleteDeactivatedUsers(ctx interface{}) *MockAuthRepository_DeleteDeactivatedUsers_Call {
+	return &MockAuthRepository_DeleteDeactivatedUsers_Call{Call: _e.mock.On("DeleteDeactivatedUsers", ctx)}
+}
+
+func (_c *MockAuthRepository_DeleteDeactivatedUsers_Call) Run(run func(ctx context.Context)) *MockAuthRepository_DeleteDeactivatedUsers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthRepository_DeleteDeactivatedUsers_Call) Return(n int64, err error) *MockAuthRepository_DeleteDeactivatedUsers_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockAuthRepository_DeleteDeactivatedUsers_Call) RunAndReturn(run func(ctx context.Context) (int64, error)) *MockAuthRepository_DeleteDeactivatedUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteUser provides a mock function for the type MockAuthRepository
 func (_mock *MockAuthRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	ret := _mock.Called(ctx, id)

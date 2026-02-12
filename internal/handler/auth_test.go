@@ -159,6 +159,22 @@ func TestLogin(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	})
 
+	t.Run("should return 403 when user is deactivated", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		c, rec := newFormContext(http.MethodPost, "/v1/auth/login", "email=user@test.com&password=password123")
+
+		authService.On("Login", mock.Anything, domain.LoginRequest{
+			Email: "user@test.com", Password: "password123",
+		}).Return(nil, domain.ErrUserDeactivated)
+
+		err := h.Login(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusForbidden, rec.Code)
+	})
+
 	t.Run("should return 400 on validation error", func(t *testing.T) {
 		t.Parallel()
 
@@ -433,6 +449,89 @@ func TestUpdateUser(t *testing.T) {
 		}).Return(nil, errors.New("unexpected"))
 
 		err := h.UpdateUser(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+}
+
+func TestReactivateAccount(t *testing.T) {
+	t.Run("should return 200 and tokens on success", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		c, rec := newFormContext(http.MethodPatch, "/v1/user/reactivate", "email=user@test.com&password=password123")
+
+		authService.On("ReactivateAccount", mock.Anything, domain.LoginRequest{
+			Email: "user@test.com", Password: "password123",
+		}).Return(&domain.AuthResponse{AccessToken: "at", RefreshToken: "rt"}, nil)
+
+		err := h.ReactivateAccount(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var resp domain.AuthResponse
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, "at", resp.AccessToken)
+		assert.Equal(t, "rt", resp.RefreshToken)
+	})
+
+	t.Run("should return 400 on validation error", func(t *testing.T) {
+		t.Parallel()
+
+		h, _ := newHandler(t)
+		c, rec := newFormContext(http.MethodPatch, "/v1/user/reactivate", "email=invalid&password=")
+
+		err := h.ReactivateAccount(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("should return 401 on invalid credentials", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		c, rec := newFormContext(http.MethodPatch, "/v1/user/reactivate", "email=user@test.com&password=wrong")
+
+		authService.On("ReactivateAccount", mock.Anything, domain.LoginRequest{
+			Email: "user@test.com", Password: "wrong",
+		}).Return(nil, domain.ErrInvalidCredentials)
+
+		err := h.ReactivateAccount(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+	t.Run("should return 400 when user is not deactivated", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		c, rec := newFormContext(http.MethodPatch, "/v1/user/reactivate", "email=user@test.com&password=password123")
+
+		authService.On("ReactivateAccount", mock.Anything, domain.LoginRequest{
+			Email: "user@test.com", Password: "password123",
+		}).Return(nil, domain.ErrUserNotDeactivated)
+
+		err := h.ReactivateAccount(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("should return 500 on service error", func(t *testing.T) {
+		t.Parallel()
+
+		h, authService := newHandler(t)
+		c, rec := newFormContext(http.MethodPatch, "/v1/user/reactivate", "email=user@test.com&password=password123")
+
+		authService.On("ReactivateAccount", mock.Anything, domain.LoginRequest{
+			Email: "user@test.com", Password: "password123",
+		}).Return(nil, errors.New("unexpected"))
+
+		err := h.ReactivateAccount(c)
 
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)

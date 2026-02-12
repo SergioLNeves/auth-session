@@ -291,6 +291,57 @@ func (_c *MockAuthHandler_Me_Call) RunAndReturn(run func(c echo.Context) error) 
 	return _c
 }
 
+// ReactivateAccount provides a mock function for the type MockAuthHandler
+func (_mock *MockAuthHandler) ReactivateAccount(c echo.Context) error {
+	ret := _mock.Called(c)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReactivateAccount")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(echo.Context) error); ok {
+		r0 = returnFunc(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockAuthHandler_ReactivateAccount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReactivateAccount'
+type MockAuthHandler_ReactivateAccount_Call struct {
+	*mock.Call
+}
+
+// ReactivateAccount is a helper method to define mock.On call
+//   - c echo.Context
+func (_e *MockAuthHandler_Expecter) ReactivateAccount(c interface{}) *MockAuthHandler_ReactivateAccount_Call {
+	return &MockAuthHandler_ReactivateAccount_Call{Call: _e.mock.On("ReactivateAccount", c)}
+}
+
+func (_c *MockAuthHandler_ReactivateAccount_Call) Run(run func(c echo.Context)) *MockAuthHandler_ReactivateAccount_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 echo.Context
+		if args[0] != nil {
+			arg0 = args[0].(echo.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthHandler_ReactivateAccount_Call) Return(err error) *MockAuthHandler_ReactivateAccount_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockAuthHandler_ReactivateAccount_Call) RunAndReturn(run func(c echo.Context) error) *MockAuthHandler_ReactivateAccount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdatePassword provides a mock function for the type MockAuthHandler
 func (_mock *MockAuthHandler) UpdatePassword(c echo.Context) error {
 	ret := _mock.Called(c)

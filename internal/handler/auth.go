@@ -126,6 +126,17 @@ func (e AuthHandlerImpl) Login(c echo.Context) error {
 			return c.JSON(http.StatusUnauthorized, problemDetails)
 		}
 
+		if errors.Is(err, domain.ErrUserDeactivated) {
+			logger.Info("user deactivated", zap.String("email", request.Email))
+			problemDetails := errorpkg.NewProblemDetails().
+				WithType("auth", "user-deactivated").
+				WithTitle("Account Deactivated").
+				WithStatus(http.StatusForbidden).
+				WithDetail("Your account has been deactivated").
+				WithInstance(c.Request().URL.Path)
+			return c.JSON(http.StatusForbidden, problemDetails)
+		}
+
 		logger.Error("failed to login", zap.Error(err))
 		problemDetails := errorpkg.NewProblemDetails().
 			WithType("auth", "internal-error").
@@ -293,6 +304,74 @@ func (e AuthHandlerImpl) DeleteUser(c echo.Context) error {
 
 	clearAuthCookies(c)
 	return c.NoContent(http.StatusOK)
+}
+
+func (e AuthHandlerImpl) ReactivateAccount(c echo.Context) error {
+	logger := logging.With(zap.String("handler", "AuthHandler.ReactivateAccount"))
+
+	var request domain.LoginRequest
+	if err := c.Bind(&request); err != nil {
+		logger.Error("failed to bind request", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("auth", "invalid-request").
+			WithTitle("Invalid Request").
+			WithStatus(http.StatusBadRequest).
+			WithDetail("Failed to parse request body").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusBadRequest, problemDetails)
+	}
+
+	if err := validatorpkg.NewValidator().Validate(request); err != nil {
+		logger.Error("validation failed", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("auth", "validation-error").
+			WithTitle("Validation Failed").
+			WithStatus(http.StatusBadRequest).
+			WithDetail("One or more fields failed validation").
+			WithInstance(c.Request().URL.Path).
+			AddFieldErrors(
+				errorpkg.NewProblemDetailsFromStructValidation(err.(validator.ValidationErrors)),
+			)
+		return c.JSON(http.StatusBadRequest, problemDetails)
+	}
+
+	response, err := e.AuthService.ReactivateAccount(c.Request().Context(), request)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			logger.Info("invalid credentials", zap.String("email", request.Email))
+			problemDetails := errorpkg.NewProblemDetails().
+				WithType("auth", "invalid-credentials").
+				WithTitle("Invalid Credentials").
+				WithStatus(http.StatusUnauthorized).
+				WithDetail("Invalid email or password").
+				WithInstance(c.Request().URL.Path)
+			return c.JSON(http.StatusUnauthorized, problemDetails)
+		}
+
+		if errors.Is(err, domain.ErrUserNotDeactivated) {
+			logger.Info("user not deactivated", zap.String("email", request.Email))
+			problemDetails := errorpkg.NewProblemDetails().
+				WithType("auth", "user-not-deactivated").
+				WithTitle("Account Not Deactivated").
+				WithStatus(http.StatusBadRequest).
+				WithDetail("This account is not deactivated").
+				WithInstance(c.Request().URL.Path)
+			return c.JSON(http.StatusBadRequest, problemDetails)
+		}
+
+		logger.Error("failed to reactivate account", zap.Error(err))
+		problemDetails := errorpkg.NewProblemDetails().
+			WithType("auth", "internal-error").
+			WithTitle("Internal Server Error").
+			WithStatus(http.StatusInternalServerError).
+			WithDetail("An unexpected error occurred while reactivating the account").
+			WithInstance(c.Request().URL.Path)
+		return c.JSON(http.StatusInternalServerError, problemDetails)
+	}
+
+	setAuthCookies(c, response)
+
+	return c.JSON(http.StatusOK, response)
 }
 
 func clearAuthCookies(c echo.Context) {

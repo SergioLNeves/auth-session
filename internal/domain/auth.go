@@ -14,6 +14,8 @@ var (
 	ErrInvalidCredentials     = fmt.Errorf("Error Invalid Credentials")
 	ErrUserNotFound           = fmt.Errorf("Error User Not Found")
 	ErrInvalidCurrentPassword = fmt.Errorf("Error Invalid Current Password")
+	ErrUserDeactivated        = fmt.Errorf("Error User Deactivated")
+	ErrUserNotDeactivated     = fmt.Errorf("Error User Not Deactivated")
 )
 
 type CreateAccountRequest struct {
@@ -28,8 +30,8 @@ type User struct {
 	Name      string
 	Email     string `gorm:"type:varchar(100);uniqueIndex;not null"`
 	Password  string `gorm:"not null"`
-	Active    bool   `gorm:"not null;default:true"`
 	Avatar    string
+	DeletedAt *time.Time
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -65,6 +67,7 @@ type AuthHandler interface {
 	UpdateUser(c echo.Context) error
 	Me(c echo.Context) error
 	DeleteUser(c echo.Context) error
+	ReactivateAccount(c echo.Context) error
 }
 
 type AuthService interface {
@@ -74,6 +77,7 @@ type AuthService interface {
 	UpdatePassword(ctx context.Context, userID string, req UpdatePasswordRequest) error
 	UpdateUser(ctx context.Context, userID string, req UpdateUserRequest) (*UserResponse, error)
 	DeleteUser(ctx context.Context, userID string) error
+	ReactivateAccount(ctx context.Context, req LoginRequest) (*AuthResponse, error)
 }
 
 type AuthRepository interface {
@@ -82,4 +86,5 @@ type AuthRepository interface {
 	FindUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 	UpdateUser(ctx context.Context, user *User) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	DeleteDeactivatedUsers(ctx context.Context) (int64, error)
 }

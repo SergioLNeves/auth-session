@@ -11,8 +11,8 @@ type UserTable struct {
 	Name      string    `gorm:"not null"`
 	Email     string    `gorm:"uniqueIndex;not null"`
 	Password  string    `gorm:"not null"`
-	Active    bool      `gorm:"default:true"`
 	Avatar    string
+	DeletedAt *time.Time `gorm:"index"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

@@ -288,6 +288,74 @@ func (_c *MockAuthService_Logout_Call) RunAndReturn(run func(ctx context.Context
 	return _c
 }
 
+// ReactivateAccount provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) ReactivateAccount(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {
+	ret := _mock.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReactivateAccount")
+	}
+
+	var r0 *domain.AuthResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest) (*domain.AuthResponse, error)); ok {
+		return returnFunc(ctx, req)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest) *domain.AuthResponse); ok {
+		r0 = returnFunc(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*domain.AuthResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.LoginRequest) error); ok {
+		r1 = returnFunc(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthService_ReactivateAccount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReactivateAccount'
+type MockAuthService_ReactivateAccount_Call struct {
+	*mock.Call
+}
+
+// ReactivateAccount is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req domain.LoginRequest
+func (_e *MockAuthService_Expecter) ReactivateAccount(ctx interface{}, req interface{}) *MockAuthService_ReactivateAccount_Call {
+	return &MockAuthService_ReactivateAccount_Call{Call: _e.mock.On("ReactivateAccount", ctx, req)}
+}
+
+func (_c *MockAuthService_ReactivateAccount_Call) Run(run func(ctx context.Context, req domain.LoginRequest)) *MockAuthService_ReactivateAccount_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 domain.LoginRequest
+		if args[1] != nil {
+			arg1 = args[1].(domain.LoginRequest)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_ReactivateAccount_Call) Return(authResponse *domain.AuthResponse, err error) *MockAuthService_ReactivateAccount_Call {
+	_c.Call.Return(authResponse, err)
+	return _c
+}
+
+func (_c *MockAuthService_ReactivateAccount_Call) RunAndReturn(run func(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error)) *MockAuthService_ReactivateAccount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdatePassword provides a mock function for the type MockAuthService
 func (_mock *MockAuthService) UpdatePassword(ctx context.Context, userID string, req domain.UpdatePasswordRequest) error {
 	ret := _mock.Called(ctx, userID, req)

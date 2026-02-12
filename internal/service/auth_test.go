@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -274,6 +275,23 @@ func TestLogin(t *testing.T) {
 		assert.Nil(t, result)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create session")
+	})
+
+	t.Run("should return ErrUserDeactivated when user is soft-deleted", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		now := time.Now()
+		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
+		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
+
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
+
+		result, err := svc.Login(ctx, req)
+
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, domain.ErrUserDeactivated)
 	})
 }
 
@@ -564,5 +582,121 @@ func TestDeleteUser(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete user")
+	})
+}
+
+func TestReactivateAccount(t *testing.T) {
+	t.Run("should reactivate account and return tokens", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, sessionRepo, tokenProvider, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		now := time.Now()
+		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
+		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
+
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
+		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
+		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
+		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("access-token", nil)
+		tokenProvider.On("GenerateRefreshToken", user.ID.String(), mock.AnythingOfType("string")).Return("refresh-token", nil)
+
+		result, err := svc.ReactivateAccount(ctx, req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "access-token", result.AccessToken)
+		assert.Equal(t, "refresh-token", result.RefreshToken)
+	})
+
+	t.Run("should return ErrInvalidCredentials when user not found", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		req := domain.LoginRequest{Email: "nobody@test.com", Password: "password123"}
+
+		authRepo.On("FindUserByEmail", ctx, "nobody@test.com").Return(nil, domain.ErrUserNotFound)
+
+		result, err := svc.ReactivateAccount(ctx, req)
+
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
+	})
+
+	t.Run("should return ErrInvalidCredentials when password is wrong", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		now := time.Now()
+		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
+		req := domain.LoginRequest{Email: "user@test.com", Password: "wrongpassword"}
+
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
+		passwordHasher.On("Check", "wrongpassword", "hashed-password").Return(errors.New("mismatch"))
+
+		result, err := svc.ReactivateAccount(ctx, req)
+
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
+	})
+
+	t.Run("should return ErrUserNotDeactivated when user is active", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, _ := newAuthService(t)
+		ctx := context.Background()
+		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password"}
+		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
+
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
+
+		result, err := svc.ReactivateAccount(ctx, req)
+
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, domain.ErrUserNotDeactivated)
+	})
+
+	t.Run("should return error when UpdateUser fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		now := time.Now()
+		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
+		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
+
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
+		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(errors.New("db error"))
+
+		result, err := svc.ReactivateAccount(ctx, req)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to reactivate user")
+	})
+
+	t.Run("should return error when CreateSession fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, sessionRepo, _, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		now := time.Now()
+		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
+		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
+
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
+		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
+		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
+		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(errors.New("db error"))
+
+		result, err := svc.ReactivateAccount(ctx, req)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create session")
 	})
 }

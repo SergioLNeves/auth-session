@@ -54,7 +54,6 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: hashedPassword,
-		Active:   true,
 		Avatar:   req.Avatar,
 	}
 
@@ -95,6 +94,10 @@ func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest) (*
 			return nil, domain.ErrInvalidCredentials
 		}
 		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+
+	if user.DeletedAt != nil {
+		return nil, domain.ErrUserDeactivated
 	}
 
 	if checkErr := s.passwordHasher.Check(req.Password, user.Password); checkErr != nil {
@@ -233,7 +236,55 @@ func (s *AuthServiceImpl) DeleteUser(ctx context.Context, userID string) error {
 	}
 
 	logging.With(zap.String("service", "AuthService.DeleteUser")).
-		Info("user deleted", zap.String("user_id", userID))
+		Info("user deactivated", zap.String("user_id", userID))
 
 	return nil
+}
+
+func (s *AuthServiceImpl) ReactivateAccount(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {
+	user, err := s.authRepository.FindUserByEmail(ctx, req.Email)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return nil, domain.ErrInvalidCredentials
+		}
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+
+	if user.DeletedAt == nil {
+		return nil, domain.ErrUserNotDeactivated
+	}
+
+	if checkErr := s.passwordHasher.Check(req.Password, user.Password); checkErr != nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+
+	user.DeletedAt = nil
+	if updateErr := s.authRepository.UpdateUser(ctx, user); updateErr != nil {
+		return nil, fmt.Errorf("failed to reactivate user: %w", updateErr)
+	}
+
+	session := &domain.Session{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(time.Duration(config.Env.Token.RefreshTokenExpiry) * time.Minute),
+	}
+
+	if createErr := s.sessionRepository.CreateSession(ctx, session); createErr != nil {
+		return nil, fmt.Errorf("failed to create session: %w", createErr)
+	}
+
+	accessToken, err := s.tokenProvider.GenerateAccessToken(session.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	refreshToken, err := s.tokenProvider.GenerateRefreshToken(user.ID.String(), session.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	return &domain.AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }

@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/samber/do"
@@ -44,8 +46,11 @@ func (r *AuthRepositoryImpl) FindUserByEmail(ctx context.Context, email string) 
 }
 
 func (r *AuthRepositoryImpl) FindUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	db := r.db.GetDB().(*gorm.DB)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
 	var user domain.User
-	if err := r.db.FindByID(ctx, TableUser, id, &user); err != nil {
+	if err := db.WithContext(ctx).Table(TableUser).Where("id = ? AND deleted_at IS NULL", id).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrUserNotFound
 		}
@@ -59,6 +64,24 @@ func (r *AuthRepositoryImpl) UpdateUser(ctx context.Context, user *domain.User) 
 }
 
 func (r *AuthRepositoryImpl) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	var user domain.User
-	return r.db.FindOneAndDelete(ctx, TableUser, id, &user)
+	db := r.db.GetDB().(*gorm.DB)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	now := time.Now()
+	result := db.WithContext(ctx).Table(TableUser).Where("id = ?", id).Update("deleted_at", now)
+	return result.Error
+}
+
+func (r *AuthRepositoryImpl) DeleteDeactivatedUsers(ctx context.Context) (int64, error) {
+	db := r.db.GetDB().(*gorm.DB)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	sevenDaysAgo := time.Now().Add(-7 * 24 * time.Hour)
+	result := db.WithContext(ctx).Table(TableUser).
+		Where("deleted_at IS NOT NULL AND deleted_at <= ?", sevenDaysAgo).
+		Delete(&domain.User{})
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to delete deactivated users: %w", result.Error)
+	}
+	return result.RowsAffected, nil
 }
