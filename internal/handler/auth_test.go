@@ -47,7 +47,7 @@ func TestCreateAccount(t *testing.T) {
 
 		authService.On("CreateAccount", mock.Anything, domain.CreateAccountRequest{
 			Name: "Test User", Email: "user@test.com", Password: "password123",
-		}).Return(&domain.AuthResponse{AccessToken: "at", RefreshToken: "rt"}, nil)
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(&domain.AuthResponse{AccessToken: "at", RefreshToken: "rt"}, nil)
 
 		err := h.CreateAccount(c)
 
@@ -68,7 +68,7 @@ func TestCreateAccount(t *testing.T) {
 
 		authService.On("CreateAccount", mock.Anything, domain.CreateAccountRequest{
 			Name: "Test User", Email: "user@test.com", Password: "password123",
-		}).Return(nil, domain.ErrEmailAlreadyExists)
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(nil, domain.ErrEmailAlreadyExists)
 
 		err := h.CreateAccount(c)
 
@@ -84,7 +84,7 @@ func TestCreateAccount(t *testing.T) {
 
 		authService.On("CreateAccount", mock.Anything, domain.CreateAccountRequest{
 			Name: "Test User", Email: "user@test.com", Password: "password123",
-		}).Return(nil, errors.New("unexpected"))
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(nil, errors.New("unexpected"))
 
 		err := h.CreateAccount(c)
 
@@ -114,7 +114,7 @@ func TestLogin(t *testing.T) {
 
 		authService.On("Login", mock.Anything, domain.LoginRequest{
 			Email: "user@test.com", Password: "password123",
-		}).Return(&domain.AuthResponse{AccessToken: "at", RefreshToken: "rt"}, nil)
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(&domain.AuthResponse{AccessToken: "at", RefreshToken: "rt"}, nil)
 
 		err := h.Login(c)
 
@@ -135,7 +135,7 @@ func TestLogin(t *testing.T) {
 
 		authService.On("Login", mock.Anything, domain.LoginRequest{
 			Email: "user@test.com", Password: "wrong",
-		}).Return(nil, domain.ErrInvalidCredentials)
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(nil, domain.ErrInvalidCredentials)
 
 		err := h.Login(c)
 
@@ -151,7 +151,7 @@ func TestLogin(t *testing.T) {
 
 		authService.On("Login", mock.Anything, domain.LoginRequest{
 			Email: "user@test.com", Password: "password123",
-		}).Return(nil, errors.New("unexpected"))
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(nil, errors.New("unexpected"))
 
 		err := h.Login(c)
 
@@ -167,7 +167,7 @@ func TestLogin(t *testing.T) {
 
 		authService.On("Login", mock.Anything, domain.LoginRequest{
 			Email: "user@test.com", Password: "password123",
-		}).Return(nil, domain.ErrUserDeactivated)
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(nil, domain.ErrUserDeactivated)
 
 		err := h.Login(c)
 
@@ -464,7 +464,7 @@ func TestReactivateAccount(t *testing.T) {
 
 		authService.On("ReactivateAccount", mock.Anything, domain.LoginRequest{
 			Email: "user@test.com", Password: "password123",
-		}).Return(&domain.AuthResponse{AccessToken: "at", RefreshToken: "rt"}, nil)
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(&domain.AuthResponse{AccessToken: "at", RefreshToken: "rt"}, nil)
 
 		err := h.ReactivateAccount(c)
 
@@ -497,7 +497,7 @@ func TestReactivateAccount(t *testing.T) {
 
 		authService.On("ReactivateAccount", mock.Anything, domain.LoginRequest{
 			Email: "user@test.com", Password: "wrong",
-		}).Return(nil, domain.ErrInvalidCredentials)
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(nil, domain.ErrInvalidCredentials)
 
 		err := h.ReactivateAccount(c)
 
@@ -513,7 +513,7 @@ func TestReactivateAccount(t *testing.T) {
 
 		authService.On("ReactivateAccount", mock.Anything, domain.LoginRequest{
 			Email: "user@test.com", Password: "password123",
-		}).Return(nil, domain.ErrUserNotDeactivated)
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(nil, domain.ErrUserNotDeactivated)
 
 		err := h.ReactivateAccount(c)
 
@@ -529,7 +529,7 @@ func TestReactivateAccount(t *testing.T) {
 
 		authService.On("ReactivateAccount", mock.Anything, domain.LoginRequest{
 			Email: "user@test.com", Password: "password123",
-		}).Return(nil, errors.New("unexpected"))
+		}, mock.AnythingOfType("domain.DeviceInfo")).Return(nil, errors.New("unexpected"))
 
 		err := h.ReactivateAccount(c)
 

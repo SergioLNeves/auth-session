@@ -18,6 +18,7 @@ import (
 type AuthServiceImpl struct {
 	authRepository    domain.AuthRepository
 	sessionRepository domain.SessionRepository
+	deviceRepository  domain.DeviceRepository
 	tokenProvider     domain.TokenProvider
 	passwordHasher    domain.PasswordHasher
 }
@@ -25,17 +26,19 @@ type AuthServiceImpl struct {
 func NewAuthService(i *do.Injector) (domain.AuthService, error) {
 	authRepository := do.MustInvoke[domain.AuthRepository](i)
 	sessionRepository := do.MustInvoke[domain.SessionRepository](i)
+	deviceRepository := do.MustInvoke[domain.DeviceRepository](i)
 	tokenProvider := do.MustInvoke[domain.TokenProvider](i)
 	passwordHasher := do.MustInvoke[domain.PasswordHasher](i)
 	return &AuthServiceImpl{
 		authRepository:    authRepository,
 		sessionRepository: sessionRepository,
+		deviceRepository:  deviceRepository,
 		tokenProvider:     tokenProvider,
 		passwordHasher:    passwordHasher,
 	}, nil
 }
 
-func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAccountRequest) (*domain.AuthResponse, error) {
+func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAccountRequest, device domain.DeviceInfo) (*domain.AuthResponse, error) {
 	_, err := s.authRepository.FindUserByEmail(ctx, req.Email)
 	if !errors.Is(err, domain.ErrUserNotFound) {
 		if err != nil {
@@ -71,6 +74,16 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
+	dev := &domain.Device{
+		ID:        uuid.New(),
+		SessionID: session.ID,
+		UserAgent: device.UserAgent,
+		IPAddress: device.IPAddress,
+	}
+	if err := s.deviceRepository.CreateDevice(ctx, dev); err != nil {
+		return nil, fmt.Errorf("failed to create device: %w", err)
+	}
+
 	accessToken, err := s.tokenProvider.GenerateAccessToken(session.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
@@ -87,7 +100,7 @@ func (s *AuthServiceImpl) CreateAccount(ctx context.Context, req domain.CreateAc
 	}, nil
 }
 
-func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {
+func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest, device domain.DeviceInfo) (*domain.AuthResponse, error) {
 	user, err := s.authRepository.FindUserByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
@@ -114,6 +127,16 @@ func (s *AuthServiceImpl) Login(ctx context.Context, req domain.LoginRequest) (*
 		return nil, fmt.Errorf("failed to create session: %w", createErr)
 	}
 
+	dev := &domain.Device{
+		ID:        uuid.New(),
+		SessionID: session.ID,
+		UserAgent: device.UserAgent,
+		IPAddress: device.IPAddress,
+	}
+	if devErr := s.deviceRepository.CreateDevice(ctx, dev); devErr != nil {
+		return nil, fmt.Errorf("failed to create device: %w", devErr)
+	}
+
 	accessToken, err := s.tokenProvider.GenerateAccessToken(session.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
@@ -134,6 +157,10 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, sessionID string) error {
 	id, err := uuid.Parse(sessionID)
 	if err != nil {
 		return fmt.Errorf("invalid session ID: %w", err)
+	}
+
+	if err := s.deviceRepository.DeleteDeviceBySessionID(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete device: %w", err)
 	}
 
 	session, err := s.sessionRepository.DeleteSession(ctx, id)
@@ -227,6 +254,10 @@ func (s *AuthServiceImpl) DeleteUser(ctx context.Context, userID string) error {
 		return fmt.Errorf("invalid user ID: %w", err)
 	}
 
+	if err := s.deviceRepository.DeleteDevicesByUserID(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete user devices: %w", err)
+	}
+
 	if err := s.sessionRepository.DeleteSessionsByUserID(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete user sessions: %w", err)
 	}
@@ -241,7 +272,7 @@ func (s *AuthServiceImpl) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (s *AuthServiceImpl) ReactivateAccount(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {
+func (s *AuthServiceImpl) ReactivateAccount(ctx context.Context, req domain.LoginRequest, device domain.DeviceInfo) (*domain.AuthResponse, error) {
 	user, err := s.authRepository.FindUserByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
@@ -271,6 +302,16 @@ func (s *AuthServiceImpl) ReactivateAccount(ctx context.Context, req domain.Logi
 
 	if createErr := s.sessionRepository.CreateSession(ctx, session); createErr != nil {
 		return nil, fmt.Errorf("failed to create session: %w", createErr)
+	}
+
+	dev := &domain.Device{
+		ID:        uuid.New(),
+		SessionID: session.ID,
+		UserAgent: device.UserAgent,
+		IPAddress: device.IPAddress,
+	}
+	if devErr := s.deviceRepository.CreateDevice(ctx, dev); devErr != nil {
+		return nil, fmt.Errorf("failed to create device: %w", devErr)
 	}
 
 	accessToken, err := s.tokenProvider.GenerateAccessToken(session.ID.String())

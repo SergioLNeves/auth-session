@@ -39,8 +39,8 @@ func (_m *MockAuthService) EXPECT() *MockAuthService_Expecter {
 }
 
 // CreateAccount provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) CreateAccount(ctx context.Context, req domain.CreateAccountRequest) (*domain.AuthResponse, error) {
-	ret := _mock.Called(ctx, req)
+func (_mock *MockAuthService) CreateAccount(ctx context.Context, req domain.CreateAccountRequest, device domain.DeviceInfo) (*domain.AuthResponse, error) {
+	ret := _mock.Called(ctx, req, device)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateAccount")
@@ -48,18 +48,18 @@ func (_mock *MockAuthService) CreateAccount(ctx context.Context, req domain.Crea
 
 	var r0 *domain.AuthResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.CreateAccountRequest) (*domain.AuthResponse, error)); ok {
-		return returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.CreateAccountRequest, domain.DeviceInfo) (*domain.AuthResponse, error)); ok {
+		return returnFunc(ctx, req, device)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.CreateAccountRequest) *domain.AuthResponse); ok {
-		r0 = returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.CreateAccountRequest, domain.DeviceInfo) *domain.AuthResponse); ok {
+		r0 = returnFunc(ctx, req, device)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*domain.AuthResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.CreateAccountRequest) error); ok {
-		r1 = returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.CreateAccountRequest, domain.DeviceInfo) error); ok {
+		r1 = returnFunc(ctx, req, device)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -74,11 +74,12 @@ type MockAuthService_CreateAccount_Call struct {
 // CreateAccount is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req domain.CreateAccountRequest
-func (_e *MockAuthService_Expecter) CreateAccount(ctx interface{}, req interface{}) *MockAuthService_CreateAccount_Call {
-	return &MockAuthService_CreateAccount_Call{Call: _e.mock.On("CreateAccount", ctx, req)}
+//   - device domain.DeviceInfo
+func (_e *MockAuthService_Expecter) CreateAccount(ctx interface{}, req interface{}, device interface{}) *MockAuthService_CreateAccount_Call {
+	return &MockAuthService_CreateAccount_Call{Call: _e.mock.On("CreateAccount", ctx, req, device)}
 }
 
-func (_c *MockAuthService_CreateAccount_Call) Run(run func(ctx context.Context, req domain.CreateAccountRequest)) *MockAuthService_CreateAccount_Call {
+func (_c *MockAuthService_CreateAccount_Call) Run(run func(ctx context.Context, req domain.CreateAccountRequest, device domain.DeviceInfo)) *MockAuthService_CreateAccount_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -88,9 +89,14 @@ func (_c *MockAuthService_CreateAccount_Call) Run(run func(ctx context.Context, 
 		if args[1] != nil {
 			arg1 = args[1].(domain.CreateAccountRequest)
 		}
+		var arg2 domain.DeviceInfo
+		if args[2] != nil {
+			arg2 = args[2].(domain.DeviceInfo)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -101,7 +107,7 @@ func (_c *MockAuthService_CreateAccount_Call) Return(authResponse *domain.AuthRe
 	return _c
 }
 
-func (_c *MockAuthService_CreateAccount_Call) RunAndReturn(run func(ctx context.Context, req domain.CreateAccountRequest) (*domain.AuthResponse, error)) *MockAuthService_CreateAccount_Call {
+func (_c *MockAuthService_CreateAccount_Call) RunAndReturn(run func(ctx context.Context, req domain.CreateAccountRequest, device domain.DeviceInfo) (*domain.AuthResponse, error)) *MockAuthService_CreateAccount_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -164,8 +170,8 @@ func (_c *MockAuthService_DeleteUser_Call) RunAndReturn(run func(ctx context.Con
 }
 
 // Login provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) Login(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {
-	ret := _mock.Called(ctx, req)
+func (_mock *MockAuthService) Login(ctx context.Context, req domain.LoginRequest, device domain.DeviceInfo) (*domain.AuthResponse, error) {
+	ret := _mock.Called(ctx, req, device)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Login")
@@ -173,18 +179,18 @@ func (_mock *MockAuthService) Login(ctx context.Context, req domain.LoginRequest
 
 	var r0 *domain.AuthResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest) (*domain.AuthResponse, error)); ok {
-		return returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest, domain.DeviceInfo) (*domain.AuthResponse, error)); ok {
+		return returnFunc(ctx, req, device)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest) *domain.AuthResponse); ok {
-		r0 = returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest, domain.DeviceInfo) *domain.AuthResponse); ok {
+		r0 = returnFunc(ctx, req, device)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*domain.AuthResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.LoginRequest) error); ok {
-		r1 = returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.LoginRequest, domain.DeviceInfo) error); ok {
+		r1 = returnFunc(ctx, req, device)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -199,11 +205,12 @@ type MockAuthService_Login_Call struct {
 // Login is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req domain.LoginRequest
-func (_e *MockAuthService_Expecter) Login(ctx interface{}, req interface{}) *MockAuthService_Login_Call {
-	return &MockAuthService_Login_Call{Call: _e.mock.On("Login", ctx, req)}
+//   - device domain.DeviceInfo
+func (_e *MockAuthService_Expecter) Login(ctx interface{}, req interface{}, device interface{}) *MockAuthService_Login_Call {
+	return &MockAuthService_Login_Call{Call: _e.mock.On("Login", ctx, req, device)}
 }
 
-func (_c *MockAuthService_Login_Call) Run(run func(ctx context.Context, req domain.LoginRequest)) *MockAuthService_Login_Call {
+func (_c *MockAuthService_Login_Call) Run(run func(ctx context.Context, req domain.LoginRequest, device domain.DeviceInfo)) *MockAuthService_Login_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -213,9 +220,14 @@ func (_c *MockAuthService_Login_Call) Run(run func(ctx context.Context, req doma
 		if args[1] != nil {
 			arg1 = args[1].(domain.LoginRequest)
 		}
+		var arg2 domain.DeviceInfo
+		if args[2] != nil {
+			arg2 = args[2].(domain.DeviceInfo)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -226,7 +238,7 @@ func (_c *MockAuthService_Login_Call) Return(authResponse *domain.AuthResponse, 
 	return _c
 }
 
-func (_c *MockAuthService_Login_Call) RunAndReturn(run func(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error)) *MockAuthService_Login_Call {
+func (_c *MockAuthService_Login_Call) RunAndReturn(run func(ctx context.Context, req domain.LoginRequest, device domain.DeviceInfo) (*domain.AuthResponse, error)) *MockAuthService_Login_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -289,8 +301,8 @@ func (_c *MockAuthService_Logout_Call) RunAndReturn(run func(ctx context.Context
 }
 
 // ReactivateAccount provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) ReactivateAccount(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {
-	ret := _mock.Called(ctx, req)
+func (_mock *MockAuthService) ReactivateAccount(ctx context.Context, req domain.LoginRequest, device domain.DeviceInfo) (*domain.AuthResponse, error) {
+	ret := _mock.Called(ctx, req, device)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ReactivateAccount")
@@ -298,18 +310,18 @@ func (_mock *MockAuthService) ReactivateAccount(ctx context.Context, req domain.
 
 	var r0 *domain.AuthResponse
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest) (*domain.AuthResponse, error)); ok {
-		return returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest, domain.DeviceInfo) (*domain.AuthResponse, error)); ok {
+		return returnFunc(ctx, req, device)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest) *domain.AuthResponse); ok {
-		r0 = returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, domain.LoginRequest, domain.DeviceInfo) *domain.AuthResponse); ok {
+		r0 = returnFunc(ctx, req, device)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*domain.AuthResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.LoginRequest) error); ok {
-		r1 = returnFunc(ctx, req)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, domain.LoginRequest, domain.DeviceInfo) error); ok {
+		r1 = returnFunc(ctx, req, device)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -324,11 +336,12 @@ type MockAuthService_ReactivateAccount_Call struct {
 // ReactivateAccount is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req domain.LoginRequest
-func (_e *MockAuthService_Expecter) ReactivateAccount(ctx interface{}, req interface{}) *MockAuthService_ReactivateAccount_Call {
-	return &MockAuthService_ReactivateAccount_Call{Call: _e.mock.On("ReactivateAccount", ctx, req)}
+//   - device domain.DeviceInfo
+func (_e *MockAuthService_Expecter) ReactivateAccount(ctx interface{}, req interface{}, device interface{}) *MockAuthService_ReactivateAccount_Call {
+	return &MockAuthService_ReactivateAccount_Call{Call: _e.mock.On("ReactivateAccount", ctx, req, device)}
 }
 
-func (_c *MockAuthService_ReactivateAccount_Call) Run(run func(ctx context.Context, req domain.LoginRequest)) *MockAuthService_ReactivateAccount_Call {
+func (_c *MockAuthService_ReactivateAccount_Call) Run(run func(ctx context.Context, req domain.LoginRequest, device domain.DeviceInfo)) *MockAuthService_ReactivateAccount_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -338,9 +351,14 @@ func (_c *MockAuthService_ReactivateAccount_Call) Run(run func(ctx context.Conte
 		if args[1] != nil {
 			arg1 = args[1].(domain.LoginRequest)
 		}
+		var arg2 domain.DeviceInfo
+		if args[2] != nil {
+			arg2 = args[2].(domain.DeviceInfo)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -351,7 +369,7 @@ func (_c *MockAuthService_ReactivateAccount_Call) Return(authResponse *domain.Au
 	return _c
 }
 
-func (_c *MockAuthService_ReactivateAccount_Call) RunAndReturn(run func(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error)) *MockAuthService_ReactivateAccount_Call {
+func (_c *MockAuthService_ReactivateAccount_Call) RunAndReturn(run func(ctx context.Context, req domain.LoginRequest, device domain.DeviceInfo) (*domain.AuthResponse, error)) *MockAuthService_ReactivateAccount_Call {
 	_c.Call.Return(run)
 	return _c
 }

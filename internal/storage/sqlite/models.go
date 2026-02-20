@@ -29,9 +29,20 @@ type SessionTable struct {
 
 func (SessionTable) TableName() string { return "session" }
 
+type DeviceTable struct {
+	ID        uuid.UUID `gorm:"type:uuid;primary_key"`
+	SessionID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex"`
+	UserAgent string    `gorm:"not null;default:'unknown'"`
+	IPAddress string    `gorm:"not null;default:'unknown'"`
+	CreatedAt time.Time
+}
+
+func (DeviceTable) TableName() string { return "device" }
+
 func GetModelsToMigrate() []any {
 	return []any{
 		&UserTable{},
 		&SessionTable{},
+		&DeviceTable{},
 	}
 }

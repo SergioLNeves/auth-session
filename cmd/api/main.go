@@ -50,7 +50,8 @@ func main() {
 	configureAuthRoute(e)
 
 	sessionRepo := do.MustInvoke[domain.SessionRepository](injector)
-	startSessionCleanup(sessionRepo)
+	deviceRepo := do.MustInvoke[domain.DeviceRepository](injector)
+	startSessionCleanup(sessionRepo, deviceRepo)
 
 	authRepo := do.MustInvoke[domain.AuthRepository](injector)
 	startUserCleanup(authRepo)
@@ -92,7 +93,7 @@ func configureAuthRoute(e *echo.Echo) {
 	authGroup.GET("/me", authHandler.Me, sessionAuth)
 }
 
-func startSessionCleanup(sessionRepo domain.SessionRepository) {
+func startSessionCleanup(sessionRepo domain.SessionRepository, deviceRepo domain.DeviceRepository) {
 	ticker := time.NewTicker(12 * time.Hour)
 	go func() {
 		for range ticker.C {
@@ -103,6 +104,15 @@ func startSessionCleanup(sessionRepo domain.SessionRepository) {
 			}
 			if deleted > 0 {
 				logger.Info("expired sessions cleaned up", zap.Int64("deleted", deleted))
+			}
+
+			deletedDevices, err := deviceRepo.DeleteExpiredDevices(context.Background())
+			if err != nil {
+				logger.Error("device cleanup failed", zap.Error(err))
+				continue
+			}
+			if deletedDevices > 0 {
+				logger.Info("orphaned devices cleaned up", zap.Int64("deleted", deletedDevices))
 			}
 		}
 	}()
@@ -133,6 +143,7 @@ func initDependencies(logger *zap.Logger) {
 
 	do.Provide(injector, repository.NewAuthRepository)
 	do.Provide(injector, repository.NewSessionRepository)
+	do.Provide(injector, repository.NewDeviceRepository)
 
 	do.Provide(injector, security.NewJWTProvider)
 	do.Provide(injector, security.NewBcryptHasher)

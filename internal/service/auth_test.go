@@ -21,26 +21,30 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func newAuthService(t *testing.T) (*AuthServiceImpl, *mockpkg.MockAuthRepository, *mockpkg.MockSessionRepository, *mockpkg.MockTokenProvider, *mockpkg.MockPasswordHasher) {
+func newAuthService(t *testing.T) (*AuthServiceImpl, *mockpkg.MockAuthRepository, *mockpkg.MockSessionRepository, *mockpkg.MockDeviceRepository, *mockpkg.MockTokenProvider, *mockpkg.MockPasswordHasher) {
 	t.Helper()
 	authRepo := mockpkg.NewMockAuthRepository(t)
 	sessionRepo := mockpkg.NewMockSessionRepository(t)
+	deviceRepo := mockpkg.NewMockDeviceRepository(t)
 	tokenProvider := mockpkg.NewMockTokenProvider(t)
 	passwordHasher := mockpkg.NewMockPasswordHasher(t)
 	svc := &AuthServiceImpl{
 		authRepository:    authRepo,
 		sessionRepository: sessionRepo,
+		deviceRepository:  deviceRepo,
 		tokenProvider:     tokenProvider,
 		passwordHasher:    passwordHasher,
 	}
-	return svc, authRepo, sessionRepo, tokenProvider, passwordHasher
+	return svc, authRepo, sessionRepo, deviceRepo, tokenProvider, passwordHasher
 }
 
 func TestCreateAccount(t *testing.T) {
+	device := domain.NewDeviceInfo("TestAgent/1.0", "127.0.0.1")
+
 	t.Run("should create account and return tokens", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, tokenProvider, passwordHasher := newAuthService(t)
+		svc, authRepo, sessionRepo, deviceRepo, tokenProvider, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
@@ -48,10 +52,11 @@ func TestCreateAccount(t *testing.T) {
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
+		deviceRepo.On("CreateDevice", ctx, mock.AnythingOfType("*domain.Device")).Return(nil)
 		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("refresh-token", nil)
 
-		result, err := svc.CreateAccount(ctx, req)
+		result, err := svc.CreateAccount(ctx, req, device)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -62,14 +67,14 @@ func TestCreateAccount(t *testing.T) {
 	t.Run("should return error when email already exists", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 		existingUser := &domain.User{ID: uuid.New(), Email: "user@test.com"}
 
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(existingUser, nil)
 
-		result, err := svc.CreateAccount(ctx, req)
+		result, err := svc.CreateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, domain.ErrEmailAlreadyExists)
@@ -78,13 +83,13 @@ func TestCreateAccount(t *testing.T) {
 	t.Run("should return error when FindUserByEmail fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, errors.New("db error"))
 
-		result, err := svc.CreateAccount(ctx, req)
+		result, err := svc.CreateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -94,14 +99,14 @@ func TestCreateAccount(t *testing.T) {
 	t.Run("should return error when Hash fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, domain.ErrUserNotFound)
 		passwordHasher.On("Hash", "password123").Return("", errors.New("hash error"))
 
-		result, err := svc.CreateAccount(ctx, req)
+		result, err := svc.CreateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -111,7 +116,7 @@ func TestCreateAccount(t *testing.T) {
 	t.Run("should return error when CreateUser fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
@@ -119,7 +124,7 @@ func TestCreateAccount(t *testing.T) {
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(errors.New("db error"))
 
-		result, err := svc.CreateAccount(ctx, req)
+		result, err := svc.CreateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -129,7 +134,7 @@ func TestCreateAccount(t *testing.T) {
 	t.Run("should return error when CreateSession fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, _, passwordHasher := newAuthService(t)
+		svc, authRepo, sessionRepo, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
@@ -138,17 +143,17 @@ func TestCreateAccount(t *testing.T) {
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(errors.New("db error"))
 
-		result, err := svc.CreateAccount(ctx, req)
+		result, err := svc.CreateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create session")
 	})
 
-	t.Run("should return error when GenerateAccessToken fails", func(t *testing.T) {
+	t.Run("should return error when CreateDevice fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, tokenProvider, passwordHasher := newAuthService(t)
+		svc, authRepo, sessionRepo, deviceRepo, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
@@ -156,9 +161,30 @@ func TestCreateAccount(t *testing.T) {
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
+		deviceRepo.On("CreateDevice", ctx, mock.AnythingOfType("*domain.Device")).Return(errors.New("db error"))
+
+		result, err := svc.CreateAccount(ctx, req, device)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create device")
+	})
+
+	t.Run("should return error when GenerateAccessToken fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, authRepo, sessionRepo, deviceRepo, tokenProvider, passwordHasher := newAuthService(t)
+		ctx := context.Background()
+		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
+
+		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, domain.ErrUserNotFound)
+		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
+		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
+		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
+		deviceRepo.On("CreateDevice", ctx, mock.AnythingOfType("*domain.Device")).Return(nil)
 		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("", errors.New("token error"))
 
-		result, err := svc.CreateAccount(ctx, req)
+		result, err := svc.CreateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -168,7 +194,7 @@ func TestCreateAccount(t *testing.T) {
 	t.Run("should return error when GenerateRefreshToken fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, tokenProvider, passwordHasher := newAuthService(t)
+		svc, authRepo, sessionRepo, deviceRepo, tokenProvider, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		req := domain.CreateAccountRequest{Email: "user@test.com", Password: "password123"}
 
@@ -176,10 +202,11 @@ func TestCreateAccount(t *testing.T) {
 		passwordHasher.On("Hash", "password123").Return("hashed-password", nil)
 		authRepo.On("CreateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
+		deviceRepo.On("CreateDevice", ctx, mock.AnythingOfType("*domain.Device")).Return(nil)
 		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return("", errors.New("token error"))
 
-		result, err := svc.CreateAccount(ctx, req)
+		result, err := svc.CreateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -188,10 +215,12 @@ func TestCreateAccount(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
+	device := domain.NewDeviceInfo("TestAgent/1.0", "127.0.0.1")
+
 	t.Run("should login and return tokens", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, tokenProvider, passwordHasher := newAuthService(t)
+		svc, authRepo, sessionRepo, deviceRepo, tokenProvider, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password"}
 		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
@@ -199,10 +228,11 @@ func TestLogin(t *testing.T) {
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
 		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
+		deviceRepo.On("CreateDevice", ctx, mock.AnythingOfType("*domain.Device")).Return(nil)
 		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", user.ID.String(), mock.AnythingOfType("string")).Return("refresh-token", nil)
 
-		result, err := svc.Login(ctx, req)
+		result, err := svc.Login(ctx, req, device)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -213,13 +243,13 @@ func TestLogin(t *testing.T) {
 	t.Run("should return ErrInvalidCredentials when user not found", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		req := domain.LoginRequest{Email: "nobody@test.com", Password: "password123"}
 
 		authRepo.On("FindUserByEmail", ctx, "nobody@test.com").Return(nil, domain.ErrUserNotFound)
 
-		result, err := svc.Login(ctx, req)
+		result, err := svc.Login(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
@@ -228,7 +258,7 @@ func TestLogin(t *testing.T) {
 	t.Run("should return ErrInvalidCredentials when password is wrong", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password"}
 		req := domain.LoginRequest{Email: "user@test.com", Password: "wrongpassword"}
@@ -236,7 +266,7 @@ func TestLogin(t *testing.T) {
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
 		passwordHasher.On("Check", "wrongpassword", "hashed-password").Return(errors.New("mismatch"))
 
-		result, err := svc.Login(ctx, req)
+		result, err := svc.Login(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
@@ -245,13 +275,13 @@ func TestLogin(t *testing.T) {
 	t.Run("should return error when FindUserByEmail fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
 
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(nil, errors.New("db error"))
 
-		result, err := svc.Login(ctx, req)
+		result, err := svc.Login(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -261,7 +291,7 @@ func TestLogin(t *testing.T) {
 	t.Run("should return error when CreateSession fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, _, passwordHasher := newAuthService(t)
+		svc, authRepo, sessionRepo, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password"}
 		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
@@ -270,7 +300,7 @@ func TestLogin(t *testing.T) {
 		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(errors.New("db error"))
 
-		result, err := svc.Login(ctx, req)
+		result, err := svc.Login(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -280,7 +310,7 @@ func TestLogin(t *testing.T) {
 	t.Run("should return ErrUserDeactivated when user is soft-deleted", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		now := time.Now()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
@@ -288,7 +318,7 @@ func TestLogin(t *testing.T) {
 
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
 
-		result, err := svc.Login(ctx, req)
+		result, err := svc.Login(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, domain.ErrUserDeactivated)
@@ -296,14 +326,15 @@ func TestLogin(t *testing.T) {
 }
 
 func TestLogout(t *testing.T) {
-	t.Run("should delete session successfully", func(t *testing.T) {
+	t.Run("should delete device and session successfully", func(t *testing.T) {
 		t.Parallel()
 
-		svc, _, sessionRepo, _, _ := newAuthService(t)
+		svc, _, sessionRepo, deviceRepo, _, _ := newAuthService(t)
 		ctx := context.Background()
 		sessionID := uuid.New()
 		deletedSession := &domain.Session{ID: sessionID, UserID: uuid.New()}
 
+		deviceRepo.On("DeleteDeviceBySessionID", ctx, sessionID).Return(nil)
 		sessionRepo.On("DeleteSession", ctx, sessionID).Return(deletedSession, nil)
 
 		err := svc.Logout(ctx, sessionID.String())
@@ -314,7 +345,7 @@ func TestLogout(t *testing.T) {
 	t.Run("should return error on invalid session ID format", func(t *testing.T) {
 		t.Parallel()
 
-		svc, _, _, _, _ := newAuthService(t)
+		svc, _, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 
 		err := svc.Logout(ctx, "not-a-uuid")
@@ -323,13 +354,29 @@ func TestLogout(t *testing.T) {
 		assert.Contains(t, err.Error(), "invalid session ID")
 	})
 
-	t.Run("should return error when DeleteSession fails", func(t *testing.T) {
+	t.Run("should return error when DeleteDeviceBySessionID fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, _, sessionRepo, _, _ := newAuthService(t)
+		svc, _, _, deviceRepo, _, _ := newAuthService(t)
 		ctx := context.Background()
 		sessionID := uuid.New()
 
+		deviceRepo.On("DeleteDeviceBySessionID", ctx, sessionID).Return(errors.New("db error"))
+
+		err := svc.Logout(ctx, sessionID.String())
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete device")
+	})
+
+	t.Run("should return error when DeleteSession fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, _, sessionRepo, deviceRepo, _, _ := newAuthService(t)
+		ctx := context.Background()
+		sessionID := uuid.New()
+
+		deviceRepo.On("DeleteDeviceBySessionID", ctx, sessionID).Return(nil)
 		sessionRepo.On("DeleteSession", ctx, sessionID).Return(nil, errors.New("db error"))
 
 		err := svc.Logout(ctx, sessionID.String())
@@ -343,7 +390,7 @@ func TestUpdatePassword(t *testing.T) {
 	t.Run("should update password successfully", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "user@test.com", Password: "hashed-old"}
@@ -361,7 +408,7 @@ func TestUpdatePassword(t *testing.T) {
 	t.Run("should return error when user not found", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 
@@ -376,7 +423,7 @@ func TestUpdatePassword(t *testing.T) {
 	t.Run("should return ErrInvalidCurrentPassword when password is wrong", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "user@test.com", Password: "hashed-old"}
@@ -392,7 +439,7 @@ func TestUpdatePassword(t *testing.T) {
 	t.Run("should return error when Hash fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "user@test.com", Password: "hashed-old"}
@@ -410,7 +457,7 @@ func TestUpdatePassword(t *testing.T) {
 	t.Run("should return error when UpdateUser fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "user@test.com", Password: "hashed-old"}
@@ -431,7 +478,7 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("should update all fields successfully", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "old@test.com", Name: "Old Name", Avatar: "old-avatar"}
@@ -452,7 +499,7 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("should update only name", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "user@test.com", Name: "Old"}
@@ -471,7 +518,7 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("should not check email when same as current", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "same@test.com", Name: "User"}
@@ -488,7 +535,7 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("should return ErrEmailAlreadyExists when email is taken", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "old@test.com", Name: "User"}
@@ -505,7 +552,7 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("should return error when FindUserByID fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 
@@ -521,7 +568,7 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("should return error when UpdateUser fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 		user := &domain.User{ID: userID, Email: "user@test.com", Name: "Old"}
@@ -541,10 +588,11 @@ func TestDeleteUser(t *testing.T) {
 	t.Run("should delete user successfully", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, _, _ := newAuthService(t)
+		svc, authRepo, sessionRepo, deviceRepo, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 
+		deviceRepo.On("DeleteDevicesByUserID", ctx, userID).Return(nil)
 		sessionRepo.On("DeleteSessionsByUserID", ctx, userID).Return(nil)
 		authRepo.On("DeleteUser", ctx, userID).Return(nil)
 
@@ -553,13 +601,29 @@ func TestDeleteUser(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("should return error when DeleteSessionsByUserID fails", func(t *testing.T) {
+	t.Run("should return error when DeleteDevicesByUserID fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, _, sessionRepo, _, _ := newAuthService(t)
+		svc, _, _, deviceRepo, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 
+		deviceRepo.On("DeleteDevicesByUserID", ctx, userID).Return(errors.New("db error"))
+
+		err := svc.DeleteUser(ctx, userID.String())
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete user devices")
+	})
+
+	t.Run("should return error when DeleteSessionsByUserID fails", func(t *testing.T) {
+		t.Parallel()
+
+		svc, _, sessionRepo, deviceRepo, _, _ := newAuthService(t)
+		ctx := context.Background()
+		userID := uuid.New()
+
+		deviceRepo.On("DeleteDevicesByUserID", ctx, userID).Return(nil)
 		sessionRepo.On("DeleteSessionsByUserID", ctx, userID).Return(errors.New("db error"))
 
 		err := svc.DeleteUser(ctx, userID.String())
@@ -571,10 +635,11 @@ func TestDeleteUser(t *testing.T) {
 	t.Run("should return error when DeleteUser fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, _, _ := newAuthService(t)
+		svc, authRepo, sessionRepo, deviceRepo, _, _ := newAuthService(t)
 		ctx := context.Background()
 		userID := uuid.New()
 
+		deviceRepo.On("DeleteDevicesByUserID", ctx, userID).Return(nil)
 		sessionRepo.On("DeleteSessionsByUserID", ctx, userID).Return(nil)
 		authRepo.On("DeleteUser", ctx, userID).Return(errors.New("db error"))
 
@@ -586,10 +651,12 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestReactivateAccount(t *testing.T) {
+	device := domain.NewDeviceInfo("TestAgent/1.0", "127.0.0.1")
+
 	t.Run("should reactivate account and return tokens", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, tokenProvider, passwordHasher := newAuthService(t)
+		svc, authRepo, sessionRepo, deviceRepo, tokenProvider, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		now := time.Now()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
@@ -599,10 +666,11 @@ func TestReactivateAccount(t *testing.T) {
 		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
 		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(nil)
+		deviceRepo.On("CreateDevice", ctx, mock.AnythingOfType("*domain.Device")).Return(nil)
 		tokenProvider.On("GenerateAccessToken", mock.AnythingOfType("string")).Return("access-token", nil)
 		tokenProvider.On("GenerateRefreshToken", user.ID.String(), mock.AnythingOfType("string")).Return("refresh-token", nil)
 
-		result, err := svc.ReactivateAccount(ctx, req)
+		result, err := svc.ReactivateAccount(ctx, req, device)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -613,13 +681,13 @@ func TestReactivateAccount(t *testing.T) {
 	t.Run("should return ErrInvalidCredentials when user not found", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		req := domain.LoginRequest{Email: "nobody@test.com", Password: "password123"}
 
 		authRepo.On("FindUserByEmail", ctx, "nobody@test.com").Return(nil, domain.ErrUserNotFound)
 
-		result, err := svc.ReactivateAccount(ctx, req)
+		result, err := svc.ReactivateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
@@ -628,7 +696,7 @@ func TestReactivateAccount(t *testing.T) {
 	t.Run("should return ErrInvalidCredentials when password is wrong", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		now := time.Now()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
@@ -637,7 +705,7 @@ func TestReactivateAccount(t *testing.T) {
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
 		passwordHasher.On("Check", "wrongpassword", "hashed-password").Return(errors.New("mismatch"))
 
-		result, err := svc.ReactivateAccount(ctx, req)
+		result, err := svc.ReactivateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
@@ -646,14 +714,14 @@ func TestReactivateAccount(t *testing.T) {
 	t.Run("should return ErrUserNotDeactivated when user is active", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, _ := newAuthService(t)
+		svc, authRepo, _, _, _, _ := newAuthService(t)
 		ctx := context.Background()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password"}
 		req := domain.LoginRequest{Email: "user@test.com", Password: "password123"}
 
 		authRepo.On("FindUserByEmail", ctx, "user@test.com").Return(user, nil)
 
-		result, err := svc.ReactivateAccount(ctx, req)
+		result, err := svc.ReactivateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, domain.ErrUserNotDeactivated)
@@ -662,7 +730,7 @@ func TestReactivateAccount(t *testing.T) {
 	t.Run("should return error when UpdateUser fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, _, _, passwordHasher := newAuthService(t)
+		svc, authRepo, _, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		now := time.Now()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
@@ -672,7 +740,7 @@ func TestReactivateAccount(t *testing.T) {
 		passwordHasher.On("Check", "password123", "hashed-password").Return(nil)
 		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(errors.New("db error"))
 
-		result, err := svc.ReactivateAccount(ctx, req)
+		result, err := svc.ReactivateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)
@@ -682,7 +750,7 @@ func TestReactivateAccount(t *testing.T) {
 	t.Run("should return error when CreateSession fails", func(t *testing.T) {
 		t.Parallel()
 
-		svc, authRepo, sessionRepo, _, passwordHasher := newAuthService(t)
+		svc, authRepo, sessionRepo, _, _, passwordHasher := newAuthService(t)
 		ctx := context.Background()
 		now := time.Now()
 		user := &domain.User{ID: uuid.New(), Email: "user@test.com", Password: "hashed-password", DeletedAt: &now}
@@ -693,7 +761,7 @@ func TestReactivateAccount(t *testing.T) {
 		authRepo.On("UpdateUser", ctx, mock.AnythingOfType("*domain.User")).Return(nil)
 		sessionRepo.On("CreateSession", ctx, mock.AnythingOfType("*domain.Session")).Return(errors.New("db error"))
 
-		result, err := svc.ReactivateAccount(ctx, req)
+		result, err := svc.ReactivateAccount(ctx, req, device)
 
 		assert.Nil(t, result)
 		assert.Error(t, err)

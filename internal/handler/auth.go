@@ -56,7 +56,8 @@ func (e AuthHandlerImpl) CreateAccount(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, problemDetails)
 	}
 
-	response, err := e.AuthService.CreateAccount(c.Request().Context(), request)
+	device := domain.NewDeviceInfo(c.Request().UserAgent(), c.RealIP())
+	response, err := e.AuthService.CreateAccount(c.Request().Context(), request, device)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailAlreadyExists) {
 			logger.Info("email already exists", zap.String("email", request.Email))
@@ -113,7 +114,8 @@ func (e AuthHandlerImpl) Login(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, problemDetails)
 	}
 
-	response, err := e.AuthService.Login(c.Request().Context(), request)
+	device := domain.NewDeviceInfo(c.Request().UserAgent(), c.RealIP())
+	response, err := e.AuthService.Login(c.Request().Context(), request, device)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			logger.Info("invalid credentials", zap.String("email", request.Email))
@@ -335,7 +337,8 @@ func (e AuthHandlerImpl) ReactivateAccount(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, problemDetails)
 	}
 
-	response, err := e.AuthService.ReactivateAccount(c.Request().Context(), request)
+	device := domain.NewDeviceInfo(c.Request().UserAgent(), c.RealIP())
+	response, err := e.AuthService.ReactivateAccount(c.Request().Context(), request, device)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			logger.Info("invalid credentials", zap.String("email", request.Email))

@@ -71,13 +71,13 @@ type AuthHandler interface {
 }
 
 type AuthService interface {
-	CreateAccount(ctx context.Context, req CreateAccountRequest) (*AuthResponse, error)
-	Login(ctx context.Context, req LoginRequest) (*AuthResponse, error)
+	CreateAccount(ctx context.Context, req CreateAccountRequest, device DeviceInfo) (*AuthResponse, error)
+	Login(ctx context.Context, req LoginRequest, device DeviceInfo) (*AuthResponse, error)
 	Logout(ctx context.Context, sessionID string) error
 	UpdatePassword(ctx context.Context, userID string, req UpdatePasswordRequest) error
 	UpdateUser(ctx context.Context, userID string, req UpdateUserRequest) (*UserResponse, error)
 	DeleteUser(ctx context.Context, userID string) error
-	ReactivateAccount(ctx context.Context, req LoginRequest) (*AuthResponse, error)
+	ReactivateAccount(ctx context.Context, req LoginRequest, device DeviceInfo) (*AuthResponse, error)
 }
 
 type AuthRepository interface {
