@@ -78,17 +78,18 @@ func configureAuthRoute(e *echo.Echo) {
 		logger.Fatal("invoke auth handler", zap.Error(err))
 	}
 	sessionAuth := authmiddleware.SessionAuth(tokenProvider, sessionRepo, authRepo)
+	rateLimiter := authmiddleware.NewRateLimiter(config.Env.RateLimit.RPM, config.Env.RateLimit.Burst)
 
 	v1 := e.Group("/v1")
 	userGroup := v1.Group("/user")
-	userGroup.POST("/create-account", authHandler.CreateAccount)
+	userGroup.POST("/create-account", authHandler.CreateAccount, rateLimiter)
 	userGroup.PATCH("/password", authHandler.UpdatePassword, sessionAuth)
 	userGroup.PATCH("/profile", authHandler.UpdateUser, sessionAuth)
 	userGroup.DELETE("", authHandler.DeleteUser, sessionAuth)
-	userGroup.PATCH("/reactivate", authHandler.ReactivateAccount)
+	userGroup.PATCH("/reactivate", authHandler.ReactivateAccount, rateLimiter)
 
 	authGroup := v1.Group("/auth")
-	authGroup.POST("/login", authHandler.Login)
+	authGroup.POST("/login", authHandler.Login, rateLimiter)
 	authGroup.POST("/logout", authHandler.Logout, sessionAuth)
 	authGroup.GET("/me", authHandler.Me, sessionAuth)
 }

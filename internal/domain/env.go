@@ -3,12 +3,13 @@ package domain
 import "time"
 
 type Config struct {
-	Env      string `env:"ENV,default=development"`
-	Port     int    `env:"PORT,default=8080"`
-	LogLevel string `env:"LOG_LEVEL,default:debug"`
-	Keys     KeysConfig
-	Token    TokenConfig
-	SQL      SQLConfig
+	Env       string `env:"ENV,default=development"`
+	Port      int    `env:"PORT,default=8080"`
+	LogLevel  string `env:"LOG_LEVEL,default:debug"`
+	Keys      KeysConfig
+	Token     TokenConfig
+	SQL       SQLConfig
+	RateLimit RateLimitConfig
 }
 
 type KeysConfig struct {
@@ -26,4 +27,9 @@ type SQLConfig struct {
 	MaxConn     int           `env:"DB_MAX_CONN,default=10"`
 	MaxIdle     int           `env:"DB_MAX_IDLE,default=5"`
 	MaxLifeTime time.Duration `env:"DB_MAX_LIFETIME,default=1h"`
+}
+
+type RateLimitConfig struct {
+	RPM   int `env:"RATE_LIMIT_RPM,default=5"`
+	Burst int `env:"RATE_LIMIT_BURST,default=5"`
 }
